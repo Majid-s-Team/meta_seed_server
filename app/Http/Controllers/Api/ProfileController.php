@@ -1,65 +1,166 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use App\Models\User;
+use App\Traits\ApiResponseTrait;
+use App\Constants\ResponseCode;
 
 class ProfileController extends Controller
 {
+    use ApiResponseTrait;
+
+    /**
+     * Get Authenticated User Profile
+     */
     public function view()
     {
-        return response()->json(Auth::user());
+        try {
+            $user = Auth::user();
+
+            if (!$user) {
+                return $this->errorResponse(ResponseCode::NOT_FOUND, 'USER_NOT_FOUND');
+            }
+
+            return $this->successResponse('SUCCESS', $user);
+
+        } catch (\Exception $e) {
+            return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR');
+        }
     }
 
-    public function update(Request $request)
-    {
+    /**
+     * Update User Profile
+     */
+  public function update(Request $request)
+{
+    try {
         $user = Auth::user();
 
-        $data = $request->validate([
+        if (!$user) {
+            return $this->errorResponse(ResponseCode::NOT_FOUND, 'USER_NOT_FOUND');
+        }
+
+        $validator = \Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $user->id,
-            'contact' => 'sometimes|string|max:20',
-            'image' => 'nullable|image|max:2048'
+            'contact' => 'sometimes|digits_between:10,21|unique:users,contact,' . $user->id,
+            'image' => 'nullable|url'
         ]);
 
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('profiles', 'public');
-            $data['image'] = $path;
+        if ($validator->fails()) {
+            return $this->errorResponse(ResponseCode::VALIDATION_ERROR, 'FAILED', $validator->errors());
+        }
+
+        $data = $validator->validated();
+
+        // ✅ Image will now properly update
+        if (isset($data['image'])) {
+            $data['image'] = $data['image'];
         }
 
         $user->update($data);
 
-        return response()->json(['message' => 'Profile updated', 'user' => $user]);
-    }
+        $user->image = $user->image ? url($user->image) : null;
 
+        return $this->successResponse('SUCCESS', $user);
+
+    } catch (\Exception $e) {
+        return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR');
+    }
+}
+
+
+
+    /**
+     * Change Password
+     */
     public function changePassword(Request $request)
     {
-        $request->validate([
-            'current_password' => 'required',
-            'new_password' => 'required|min:6|confirmed',
-        ]);
+        try {
+            $validator = Validator::make($request->all(), [
+                'current_password' => 'required',
+                'new_password' => 'required|min:6|confirmed',
+            ]);
 
-        $user = Auth::user();
+            if ($validator->fails()) {
+                return $this->errorResponse(ResponseCode::VALIDATION_ERROR, 'FAILED', $validator->errors());
+            }
 
-        if (!Hash::check($request->current_password, $user->password)) {
-            return response()->json(['message' => 'Current password is incorrect'], 400);
+            $user = Auth::user();
+
+            if (!$user) {
+                return $this->errorResponse(ResponseCode::NOT_FOUND, 'USER_NOT_FOUND');
+            }
+
+            if (!Hash::check($request->current_password, $user->password)) {
+                return $this->errorResponse(ResponseCode::BAD_REQUEST, 'FAILED', [
+                    'message' => 'Current password is incorrect',
+                ]);
+            }
+
+            $user->password = bcrypt($request->new_password);
+            $user->save();
+
+            return $this->successResponse('SUCCESS', ['message' => 'Password updated successfully']);
+
+        } catch (\Exception $e) {
+            return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR');
         }
-
-        $user->password = bcrypt($request->new_password);
-        $user->save();
-
-        return response()->json(['message' => 'Password updated successfully']);
     }
 
+    /**
+     * Toggle User Active/Inactive Status (Admin Only)
+     */
     public function toggleActive($id)
     {
-        $user = User::findOrFail($id);
-        $user->is_active = !$user->is_active;
-        $user->save();
+        try {
+            $user = User::find($id);
 
-        return response()->json(['status' => 'success', 'is_active' => $user->is_active]);
+            if (!$user) {
+                return $this->errorResponse(ResponseCode::NOT_FOUND, 'USER_NOT_FOUND');
+            }
+
+            $user->is_active = !$user->is_active;
+            $user->save();
+
+            return $this->successResponse('SUCCESS', [
+                'user_id' => $user->id,
+                'is_active' => $user->is_active,
+            ]);
+
+        } catch (\Exception $e) {
+            return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR');
+        }
+    }
+    public function uploadMedia(Request $request)
+    {
+        try {
+            $validator = \Validator::make($request->all(), [
+                'image' => 'required|image|max:2048',
+            ]);
+
+            if ($validator->fails()) {
+                return $this->errorResponse(ResponseCode::VALIDATION_ERROR, 'FAILED', $validator->errors());
+            }
+
+            // Store the file
+            $path = $request->file('image')->store('uploads', 'public');
+
+            $url = asset('storage/' . $path);
+
+            return $this->successResponse('SUCCESS', [
+                'url' => $url,
+            ]);
+
+        } catch (\Exception $e) {
+            return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR');
+        }
     }
 }

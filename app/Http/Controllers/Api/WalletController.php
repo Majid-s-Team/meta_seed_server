@@ -6,20 +6,40 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\{Wallet, Transaction};
 use Illuminate\Support\Facades\Auth;
+use App\Traits\ApiResponseTrait;
+use App\Constants\ResponseCode;
 
 class WalletController extends Controller
 {
+    use ApiResponseTrait;
+
+    /**
+     * Fetch user wallet balance
+     */
     public function index()
     {
         $wallet = Wallet::firstOrCreate(['user_id' => Auth::id()]);
-        return response()->json(['balance' => $wallet->balance]);
+
+        return $this->successResponse('WALLET_FETCHED', [
+            'balance' => $wallet->balance
+        ]);
     }
 
+    /**
+     * Fetch user's transaction history
+     */
     public function transactions()
     {
-        return response()->json(Transaction::where('user_id', Auth::id())->latest()->get());
+        $transactions = Transaction::where('user_id', Auth::id())
+            ->latest()
+            ->get();
+
+        return $this->successResponse('TRANSACTION_LIST', $transactions);
     }
 
+    /**
+     * Purchase coins and update wallet
+     */
     public function purchaseCoins(Request $request)
     {
         $request->validate([
@@ -29,7 +49,6 @@ class WalletController extends Controller
 
         $user = Auth::user();
 
-
         $coinMapping = [
             'coins_10' => 10,
             'coins_50' => 50,
@@ -37,19 +56,16 @@ class WalletController extends Controller
         ];
 
         if (!isset($coinMapping[$request->product_id])) {
-            return response()->json(['message' => 'Invalid product ID'], 400);
+            return $this->errorResponse(ResponseCode::BAD_REQUEST, 'INVALID_PRODUCT');
         }
 
         $coins = $coinMapping[$request->product_id];
 
-        // [Optional: Validate purchase with Google if needed]
-        // For now, we'll assume client already verified
-
+        // (Optional) Validate with Google Play API if needed
 
         $wallet = Wallet::firstOrCreate(['user_id' => $user->id]);
         $wallet->balance += $coins;
         $wallet->save();
-
 
         Transaction::create([
             'user_id' => $user->id,
@@ -58,6 +74,8 @@ class WalletController extends Controller
             'description' => 'Coins purchased via Play Store: ' . $coins
         ]);
 
-        return response()->json(['message' => 'Coins added successfully', 'balance' => $wallet->balance]);
+        return $this->successResponse('COINS_ADDED', [
+            'balance' => $wallet->balance
+        ]);
     }
 }
