@@ -51,10 +51,10 @@ class ProfileController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $user->id,
             // 'contact' => 'sometimes|digits_between:10,21|unique:users,contact,' . $user->id,
-            'contact' => [
+           'contact' => [
                 'required',
-                'regex:/^(\+?\d{1,3})?[\d]{7,18}$/',
-                'unique:users,contact'
+                'regex:/^(\+?\d{1,3}[-\s]?)?[\d\s-]{7,20}$/',
+                'unique:users,contact',
             ],
             'image' => 'nullable|url'
         ]);

@@ -26,10 +26,10 @@ class AuthController extends Controller
                 'email' => 'required|email|unique:users',
                 'password' => 'required|confirmed|min:6',
                 // 'contact' => 'required|digits_between:10,21|unique:users,contact',
-                'contact' => [
+        'contact' => [
                 'required',
-                'regex:/^(\+?\d{1,3})?[\d]{7,18}$/',
-                'unique:users,contact'
+                'regex:/^(\+?\d{1,3}[-\s]?)?[\d\s-]{7,20}$/',
+                'unique:users,contact',
             ],
 
             ]);
