@@ -25,7 +25,12 @@ class AuthController extends Controller
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users',
                 'password' => 'required|confirmed|min:6',
-                'contact' => 'required|digits_between:10,21|unique:users,contact',
+                // 'contact' => 'required|digits_between:10,21|unique:users,contact',
+                'contact' => [
+                'required',
+                'regex:/^(\+?\d{1,3})?[\d]{7,18}$/',
+                'unique:users,contact'
+            ],
 
             ]);
 

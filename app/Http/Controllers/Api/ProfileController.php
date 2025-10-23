@@ -50,7 +50,12 @@ class ProfileController extends Controller
         $validator = \Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $user->id,
-            'contact' => 'sometimes|digits_between:10,21|unique:users,contact,' . $user->id,
+            // 'contact' => 'sometimes|digits_between:10,21|unique:users,contact,' . $user->id,
+            'contact' => [
+                'required',
+                'regex:/^(\+?\d{1,3})?[\d]{7,18}$/',
+                'unique:users,contact'
+            ],
             'image' => 'nullable|url'
         ]);
 
