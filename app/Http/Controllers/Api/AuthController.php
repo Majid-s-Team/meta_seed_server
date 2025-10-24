@@ -21,34 +21,54 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         try {
-            $data = $request->validate([
+            $validator = \Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users',
                 'password' => 'required|confirmed|min:6',
-                // 'contact' => 'required|digits_between:10,21|unique:users,contact',
-        'contact' => [
-                'required',
-                'regex:/^(\+?\d{1,3}[-\s]?)?[\d\s-]{7,20}$/',
-                'unique:users,contact',
-            ],
-
+                'contact' => [
+                    'required',
+                    'regex:/^(\+?\d{1,3}[-\s]?)?[\d\s-]{7,20}$/',
+                    'unique:users,contact',
+                ],
+                'image' => ['nullable', 'url'],
+            ], [
+                'name.required' => 'Name is required.',
+                'email.required' => 'Email is required.',
+                'email.email' => 'Email format is invalid.',
+                'email.unique' => 'This email is already registered.',
+                'password.required' => 'Password is required.',
+                'password.confirmed' => 'Password confirmation does not match.',
+                'password.min' => 'Password must be at least 6 characters.',
+                'contact.required' => 'Contact number is required.',
+                'contact.regex' => 'Contact number format is invalid.',
+                'contact.unique' => 'This contact number is already registered.',
+                'image.url' => 'Image must be a valid URL.',
             ]);
 
-            $data['password'] = bcrypt($data['password']);
-            $user = User::create($data);
+            if ($validator->fails()) {
+                return $this->errorResponse(422, 'VALIDATION_FAILED', [
+                    'errors' => $validator->errors(),
+                ]);
+            }
 
+            $data = $validator->validated();
+            $data['password'] = bcrypt($data['password']);
+
+            $user = User::create($data);
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return $this->successResponse('REGISTER_SUCCESS', [
                 'token' => $token,
                 'user'  => $user,
             ]);
+
         } catch (\Exception $e) {
             return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
+
 
     /**
      * User Login
@@ -124,7 +144,7 @@ class AuthController extends Controller
 
             return $this->successResponse('OTP_SENT', [
                 'email' => $user->email,
-                'otp'   => $otp, 
+                'otp'   => $otp,
             ]);
         } catch (\Exception $e) {
             return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR', [

@@ -5,7 +5,9 @@ return [
     'REGISTER_SUCCESS' => 'User registered successfully.',
     'LOGIN_SUCCESS' => 'Login successful.',
     'LOGOUT_SUCCESS' => 'User logged out successfully.',
+    'VALIDATION_FAILED' => 'One or more fields have validation errors. Please check your input and try again.',
     'INVALID_CREDENTIALS' => 'Invalid login credentials.',
+    'USER_ALREADY_EXISTS' => 'User Already Register with this Email or Contact Number.',
     'INACTIVE_USER' => 'User account is inactive.',
     'USER_NOT_FOUND' => 'User not found.',
     'OTP_SENT' => 'OTP sent successfully.',
@@ -13,6 +15,7 @@ return [
     'PASSWORD_RESET_SUCCESS' => 'Password has been reset successfully.',
 
     'SUCCESS' => 'Success.',
+    'PROFILE_UPDATED'=>'Profile has been updated successfully.',
     'FAILED' => 'Operation failed.',
     'SERVER_ERROR' => 'Something went wrong. Please try again later.',
 

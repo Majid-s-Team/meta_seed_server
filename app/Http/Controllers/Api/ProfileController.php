@@ -65,7 +65,6 @@ class ProfileController extends Controller
 
         $data = $validator->validated();
 
-        // ✅ Image will now properly update
         if (isset($data['image'])) {
             $data['image'] = $data['image'];
         }
@@ -74,7 +73,7 @@ class ProfileController extends Controller
 
         $user->image = $user->image ? url($user->image) : null;
 
-        return $this->successResponse('SUCCESS', $user);
+        return $this->successResponse('PROFILE_UPDATED', $user);
 
     } catch (\Exception $e) {
         return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR');
@@ -106,14 +105,14 @@ class ProfileController extends Controller
 
             if (!Hash::check($request->current_password, $user->password)) {
                 return $this->errorResponse(ResponseCode::BAD_REQUEST, 'FAILED', [
-                    'message' => 'Current password is incorrect',
+                    'message' => 'Invalid current password.',
                 ]);
             }
 
             $user->password = bcrypt($request->new_password);
             $user->save();
 
-            return $this->successResponse('SUCCESS', ['message' => 'Password updated successfully']);
+            return $this->successResponse('SUCCESS', ['message' => 'Your password has been changed successfully.']);
 
         } catch (\Exception $e) {
             return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR');
@@ -144,28 +143,45 @@ class ProfileController extends Controller
             return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR');
         }
     }
-    public function uploadMedia(Request $request)
+   public function uploadMedia(Request $request)
     {
         try {
             $validator = \Validator::make($request->all(), [
-                'image' => 'required|image|max:2048',
+                'image' => 'required|mimes:jpeg,jpg,png,gif,webp,svg,bmp,tiff,heic|max:5120', // up to 5MB
+            ], [
+                'image.required' => 'Please upload an image file.',
+                'image.mimes' => 'The uploaded file must be a valid image (jpeg, jpg, png, gif, webp, svg, bmp, tiff, heic).',
+                'image.max' => 'The image size must not exceed 5MB.',
             ]);
 
             if ($validator->fails()) {
-                return $this->errorResponse(ResponseCode::VALIDATION_ERROR, 'FAILED', $validator->errors());
+                return $this->errorResponse(ResponseCode::VALIDATION_ERROR, 'VALIDATION_FAILED', [
+                    'errors' => $validator->errors()
+                ]);
             }
 
-            // Store the file
-            $path = $request->file('image')->store('uploads', 'public');
+            if (!$request->hasFile('image') || !$request->file('image')->isValid()) {
+                return $this->errorResponse(ResponseCode::VALIDATION_ERROR, 'INVALID_FILE', [
+                    'error' => 'No valid image file uploaded or the file is corrupted.',
+                ]);
+            }
 
+            $path = $request->file('image')->store('uploads', 'public');
             $url = asset('storage/' . $path);
 
-            return $this->successResponse('SUCCESS', [
+            return $this->successResponse('UPLOAD_SUCCESS', [
                 'url' => $url,
             ]);
 
+        } catch (\Illuminate\Http\Exceptions\PostTooLargeException $e) {
+            return $this->errorResponse(ResponseCode::VALIDATION_ERROR, 'FILE_TOO_LARGE', [
+                'error' => 'The uploaded file exceeds the maximum allowed size.',
+            ]);
         } catch (\Exception $e) {
-            return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR');
+            return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR', [
+                'error' => $e->getMessage(),
+            ]);
         }
     }
+
 }
