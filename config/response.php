@@ -4,6 +4,7 @@ return [
     
     'REGISTER_SUCCESS' => 'User registered successfully.',
     'LOGIN_SUCCESS' => 'Login successful.',
+    'UPLOAD_SUCCESS' => 'Image uploaded successfully.',
     'LOGOUT_SUCCESS' => 'User logged out successfully.',
     'VALIDATION_FAILED' => 'One or more fields have validation errors. Please check your input and try again.',
     'INVALID_CREDENTIALS' => 'Invalid login credentials.',

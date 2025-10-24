@@ -46,10 +46,18 @@ class AuthController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return $this->errorResponse(422, 'VALIDATION_FAILED', [
-                    'errors' => $validator->errors(),
-                ]);
-            }
+                        $errors = $validator->errors();
+
+                        return response()->json([
+                            'status_code' => 422,
+                            'message' => 'One or more fields have validation errors. Please check your input and try again.',
+                            'errors' => $errors, 
+                            'data' => [
+                                'errors' => $errors, 
+                            ],
+                        ], 422);
+                    }
+
 
             $data = $validator->validated();
             $data['password'] = bcrypt($data['password']);
