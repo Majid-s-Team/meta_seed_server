@@ -18,7 +18,7 @@ class AuthController extends Controller
     /**
      * User Registration
      */
-    public function register(Request $request)
+   public function register(Request $request)
     {
         try {
             $validator = \Validator::make($request->all(), [
@@ -46,18 +46,13 @@ class AuthController extends Controller
             ]);
 
             if ($validator->fails()) {
-                        $errors = $validator->errors();
-
-                        return response()->json([
-                            'status_code' => 422,
-                            'message' => 'One or more fields have validation errors. Please check your input and try again.',
-                            'errors' => $errors, 
-                            'data' => [
-                                'errors' => $errors, 
-                            ],
-                        ], 422);
-                    }
-
+                return $this->apiResponse(
+                    422,
+                    'This email or contact already registered.',
+                    // [ $validator->errors()]
+                    [ ]
+                );
+            }
 
             $data = $validator->validated();
             $data['password'] = bcrypt($data['password']);
@@ -65,17 +60,24 @@ class AuthController extends Controller
             $user = User::create($data);
             $token = $user->createToken('auth_token')->plainTextToken;
 
-            return $this->successResponse('REGISTER_SUCCESS', [
-                'token' => $token,
-                'user'  => $user,
-            ]);
+            return $this->apiResponse(
+                200,
+                'REGISTER_SUCCESS',
+                [
+                    'token' => $token,
+                    'user'  => $user,
+                ]
+            );
 
         } catch (\Exception $e) {
-            return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR', [
-                'error' => $e->getMessage(),
-            ]);
+            return $this->apiResponse(
+                500,
+                'There is some sort of Data Issue',
+                [ ]
+            );
         }
     }
+
 
 
     /**
