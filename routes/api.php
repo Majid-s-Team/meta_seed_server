@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\EventCategoryController;
 use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\StaticPageController;
+use App\Http\Controllers\Api\EventBookingController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -40,10 +41,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Events
     Route::get('events', [EventController::class, 'index']);
     Route::get('events/{id}', [EventController::class, 'show']);
+    Route::get('events-booking', [EventBookingController::class, 'index']);
+    Route::get('events-booking/{id}', [EventBookingController::class, 'show']);
     Route::post('events/{id}/book', [EventController::class, 'book']);
 
     //    Static Pages
-    
+
     Route::get('pages', [StaticPageController::class, 'index']);
     Route::get('pages/{type}', [StaticPageController::class, 'show']);
     Route::post('pages', [StaticPageController::class, 'store']);
