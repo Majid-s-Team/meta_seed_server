@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\EventBooking;
-use App\Enums\ResponseCode;
+use App\Constants\ResponseCode;
+use App\Traits\ApiResponseTrait;
+use App\Models\EventCategory;
 
 class EventBookingController extends Controller
 {
+    use ApiResponseTrait;
     /**
      * List logged-in user's event bookings
      */
