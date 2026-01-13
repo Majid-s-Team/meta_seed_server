@@ -12,26 +12,42 @@ class EventBookingController extends Controller
     /**
      * List logged-in user's event bookings
      */
-    public function index(Request $request)
-    {
-        try {
+   public function index(Request $request)
+{
+    try {
 
-            $bookings = EventBooking::with([
-                    'event'
-                ])
-                ->where('user_id', auth()->id()) //  only logged-in user
-                ->orderBy('created_at', 'desc')
-                ->get();
+        $filter = $request->query('filter'); // upcoming | past
+        $clientDate = $request->query('event_date', now()->toDateString());
 
-            return $this->successResponse('SUCCESS', $bookings);
+        $query = EventBooking::with(['event'])
+            ->where('user_id', auth()->id()); // 🔐 only logged-in user
 
-        } catch (\Exception $e) {
-            return $this->errorResponse(
-                ResponseCode::INTERNAL_SERVER_ERROR,
-                'SERVER_ERROR'
-            );
+        // 📅 Date filter (event date ke basis par)
+        if ($filter === 'upcoming' && $clientDate) {
+            $query->whereHas('event', function ($q) use ($clientDate) {
+                $q->whereDate('date', '>', $clientDate);
+            });
         }
+        elseif ($filter === 'past' && $clientDate) {
+            $query->whereHas('event', function ($q) use ($clientDate) {
+                $q->whereDate('date', '<', $clientDate);
+            });
+        }
+
+        $bookings = $query
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->successResponse('SUCCESS', $bookings);
+
+    } catch (\Exception $e) {
+        return $this->errorResponse(
+            ResponseCode::INTERNAL_SERVER_ERROR,
+            'SERVER_ERROR'
+        );
     }
+}
+
 
  /**
      * Show single event booking (only logged-in user)
