@@ -199,6 +199,18 @@ public function index(Request $request)
                 return $this->errorResponse(ResponseCode::NOT_FOUND, 'USER_NOT_FOUND');
             }
 
+             $alreadyBooked = EventBooking::where('user_id', $user->id)
+            ->where('event_id', $event->id)
+            ->exists();
+
+        if ($alreadyBooked) {
+            return $this->errorResponse(
+                ResponseCode::BAD_REQUEST,
+                'FAILED',
+                ['message' => 'You have already booked this event']
+            );
+        }
+
             if ($event->available_seats <= 0) {
                 return $this->errorResponse(ResponseCode::BAD_REQUEST, 'FAILED', ['message' => 'No seats available']);
             }
