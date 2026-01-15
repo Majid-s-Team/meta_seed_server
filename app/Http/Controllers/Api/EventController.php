@@ -206,19 +206,23 @@ public function index(Request $request)
         if ($alreadyBooked) {
             return $this->errorResponse(
                 ResponseCode::BAD_REQUEST,
-                'FAILED',
+                'You have already booked this event',
                 ['message' => 'You have already booked this event']
             );
         }
 
             if ($event->available_seats <= 0) {
-                return $this->errorResponse(ResponseCode::BAD_REQUEST, 'FAILED', ['message' => 'No seats available']);
+                return $this->errorResponse(ResponseCode::BAD_REQUEST, 'No seats available', ['message' => 'No seats available']);
             }
 
-            $wallet = Wallet::firstOrCreate(['user_id' => $user->id]);
+          $wallet = Wallet::firstOrCreate(
+    ['user_id' => $user->id],       // search only by user
+    ['balance' => 999999]            // default if not found
+);
+
 
             if ($wallet->balance < $event->coins) {
-                return $this->errorResponse(ResponseCode::BAD_REQUEST, 'FAILED', ['message' => 'Insufficient coins']);
+                return $this->errorResponse(ResponseCode::BAD_REQUEST, 'Insufficient coins', ['message' => 'Insufficient coins']);
             }
 
             EventBooking::create([
@@ -236,7 +240,7 @@ public function index(Request $request)
                 'description' => 'Event booking: ' . $event->title,
             ]);
 
-            return $this->successResponse('SUCCESS', ['message' => 'Event booked successfully']);
+            return $this->successResponse('Event booked successfully', ['message' => 'Event booked successfully']);
 
         } catch (\Exception $e) {
             return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR');
