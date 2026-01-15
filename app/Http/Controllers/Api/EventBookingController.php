@@ -15,17 +15,16 @@ class EventBookingController extends Controller
     /**
      * List logged-in user's event bookings
      */
-   public function index(Request $request)
+public function index(Request $request)
 {
     try {
 
-        $filter = $request->query('filter'); // upcoming | past
+        $filter = $request->query('filter');
         $clientDate = $request->query('event_date', now()->toDateString());
 
         $query = EventBooking::with(['event'])
-            ->where('user_id', auth()->id()); // 🔐 only logged-in user
+            ->where('user_id', auth()->id());
 
-        // 📅 Date filter (event date ke basis par)
         if ($filter === 'upcoming' && $clientDate) {
             $query->whereHas('event', function ($q) use ($clientDate) {
                 $q->whereDate('date', '>', $clientDate);
@@ -39,7 +38,10 @@ class EventBookingController extends Controller
 
         $bookings = $query
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->each(function ($booking) {
+                $booking->isBooked = true;
+            });
 
         return $this->successResponse('SUCCESS', $bookings);
 
@@ -50,6 +52,7 @@ class EventBookingController extends Controller
         );
     }
 }
+
 
 
  /**
