@@ -17,31 +17,50 @@ class EventController extends Controller
     /**
      * List events with filters (upcoming/past)
      */
-    public function index(Request $request)
-    {
-        try {
-            $filter = $request->query('filter');
-            $clientDate = $request->query('event_date', now()->toDateString());
-            $query = Event::with('category');
+   use App\Models\EventBooking;
 
-            if ($filter === 'upcoming' && $clientDate) {
-                $query->whereDate('date', '>', $clientDate);
-            } elseif ($filter === 'past' && $clientDate) {
-                $query->whereDate('date', '<', $clientDate);
-            }
+public function index(Request $request)
+{
+    try {
+        $filter = $request->query('filter');
+        $clientDate = $request->query('event_date', now()->toDateString());
 
-            if (auth()->user()->role === 'user') {
-                $query->whereIn('status', ['active', 'completed']);
-            }
+        $query = Event::with('category');
 
-            $events = $query->orderBy('date', 'asc')->get();
-
-            return $this->successResponse('SUCCESS', $events);
-
-        } catch (\Exception $e) {
-            return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR');
+        if ($filter === 'upcoming' && $clientDate) {
+            $query->whereDate('date', '>', $clientDate);
+        } elseif ($filter === 'past' && $clientDate) {
+            $query->whereDate('date', '<', $clientDate);
         }
+
+        if (auth()->user()->role === 'user') {
+            $query->whereIn('status', ['active', 'completed']);
+        }
+
+        $events = $query->orderBy('date', 'asc')->get();
+
+        // isBooked add (structure same)
+        if (auth()->check()) {
+            $bookedEventIds = EventBooking::where('user_id', auth()->id())
+                ->pluck('event_id')
+                ->toArray();
+
+            $events->transform(function ($event) use ($bookedEventIds) {
+                $event->isBooked = in_array($event->id, $bookedEventIds);
+                return $event;
+            });
+        }
+
+        return $this->successResponse('SUCCESS', $events);
+
+    } catch (\Exception $e) {
+        return $this->errorResponse(
+            ResponseCode::INTERNAL_SERVER_ERROR,
+            'SERVER_ERROR'
+        );
     }
+}
+
 
     /**
      * Show event details
