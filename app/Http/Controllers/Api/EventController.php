@@ -14,10 +14,7 @@ class EventController extends Controller
 {
     use ApiResponseTrait;
 
-    /**
-     * List events with filters (upcoming/past)
-     */
-   use App\Models\EventBooking;
+
 
 public function index(Request $request)
 {
@@ -66,20 +63,32 @@ public function index(Request $request)
      * Show event details
      */
     public function show($id)
-    {
-        try {
-            $event = Event::with('category')->find($id);
+{
+    try {
+        $event = Event::with('category')->find($id);
 
-            if (!$event) {
-                return $this->errorResponse(ResponseCode::NOT_FOUND, 'USER_NOT_FOUND');
-            }
-
-            return $this->successResponse('SUCCESS', $event);
-
-        } catch (\Exception $e) {
-            return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR');
+        if (!$event) {
+            return $this->errorResponse(ResponseCode::NOT_FOUND, 'USER_NOT_FOUND');
         }
+
+        // isBooked flag add
+        $event->isBooked = false;
+
+        if (auth()->check()) {
+            $event->isBooked = EventBooking::where('user_id', auth()->id())
+                ->where('event_id', $event->id)
+                ->exists();
+        }
+
+        return $this->successResponse('SUCCESS', $event);
+
+    } catch (\Exception $e) {
+        return $this->errorResponse(
+            ResponseCode::INTERNAL_SERVER_ERROR,
+            'SERVER_ERROR'
+        );
     }
+}
 
     /**
      * Create a new event

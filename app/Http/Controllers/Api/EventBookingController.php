@@ -58,31 +58,35 @@ public function index(Request $request)
  /**
      * Show single event booking (only logged-in user)
      */
-    public function show($id)
-    {
-        try {
+   public function show($id)
+{
+    try {
 
-            $booking = EventBooking::with(['event'])
-                ->where('id', $id)
-                ->where('user_id', auth()->id()) // security check
-                ->first();
+        $booking = EventBooking::with(['event'])
+            ->where('id', $id)
+            ->where('user_id', auth()->id())
+            ->first();
 
-            if (!$booking) {
-                return $this->errorResponse(
-                    ResponseCode::NOT_FOUND,
-                    'BOOKING_NOT_FOUND'
-                );
-            }
-
-            return $this->successResponse('SUCCESS', $booking);
-
-        } catch (\Exception $e) {
+        if (!$booking) {
             return $this->errorResponse(
-                ResponseCode::INTERNAL_SERVER_ERROR,
-                'SERVER_ERROR'
+                ResponseCode::NOT_FOUND,
+                'BOOKING_NOT_FOUND'
             );
         }
+
+        // frontend flag
+        $booking->isBooked = true;
+
+        return $this->successResponse('SUCCESS', $booking);
+
+    } catch (\Exception $e) {
+        return $this->errorResponse(
+            ResponseCode::INTERNAL_SERVER_ERROR,
+            'SERVER_ERROR'
+        );
     }
+}
+
 
 
 
