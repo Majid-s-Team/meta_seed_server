@@ -22,7 +22,8 @@ public function index(Request $request)
         $filter = $request->query('filter');
         $clientDate = $request->query('event_date', now()->toDateString());
 
-        $query = EventBooking::with(['event'])
+        // Base query with event and category
+        $query = EventBooking::with(['event.category'])
             ->where('user_id', auth()->id());
 
         if ($filter === 'upcoming' && $clientDate) {
@@ -40,7 +41,28 @@ public function index(Request $request)
             ->orderBy('created_at', 'desc')
             ->get()
             ->each(function ($booking) {
+
+                //  Frontend flag
                 $booking->isBooked = true;
+
+                // Flatten event attributes into booking
+                if ($booking->event) {
+                    foreach ($booking->event->getAttributes() as $key => $value) {
+
+                        // don't overwrite booking id
+                        if ($key === 'id') {
+                            continue;
+                        }
+
+                        $booking->{$key} = $value;
+                    }
+
+                    //  Keep category object
+                    $booking->category = $booking->event->category;
+
+                    // Remove event block
+                    unset($booking->event);
+                }
             });
 
         return $this->successResponse('SUCCESS', $bookings);
@@ -58,11 +80,12 @@ public function index(Request $request)
  /**
      * Show single event booking (only logged-in user)
      */
-   public function show($id)
+public function show($id)
 {
     try {
 
-        $booking = EventBooking::with(['event'])
+        // Load booking with event and category
+        $booking = EventBooking::with(['event.category'])
             ->where('id', $id)
             ->where('user_id', auth()->id())
             ->first();
@@ -74,8 +97,27 @@ public function index(Request $request)
             );
         }
 
-        // frontend flag
+        // Frontend flag
         $booking->isBooked = true;
+
+        // Flatten event attributes into booking
+        if ($booking->event) {
+            foreach ($booking->event->getAttributes() as $key => $value) {
+
+                // don't overwrite booking id
+                if ($key === 'id') {
+                    continue;
+                }
+
+                $booking->{$key} = $value;
+            }
+
+            // Keep category object
+            $booking->category = $booking->event->category;
+
+            // Remove event block
+            unset($booking->event);
+        }
 
         return $this->successResponse('SUCCESS', $booking);
 
@@ -86,6 +128,8 @@ public function index(Request $request)
         );
     }
 }
+
+
 
 
 
