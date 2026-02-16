@@ -21,9 +21,15 @@ use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\StaticPageController;
 use App\Http\Controllers\Api\EventBookingController;
+use App\Http\Controllers\Api\LivestreamController;
+use App\Http\Controllers\Api\Admin\LivestreamController as AdminLivestreamController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Local livestream testing: no auth when LIVESTREAM_LOCAL_TEST=true (returns 404 when disabled)
+Route::get('livestreams/test-live', [LivestreamController::class, 'testLive']);
+Route::get('livestreams/{id}/test-credentials', [LivestreamController::class, 'testCredentials']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
@@ -61,6 +67,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('wallet/purchase', [WalletController::class, 'purchaseCoins']);
     Route::get('transactions', [WalletController::class, 'transactions']);
 
+    // Livestreams (user)
+    Route::get('livestreams/upcoming', [LivestreamController::class, 'upcoming']);
+    Route::get('livestreams/live', [LivestreamController::class, 'live']);
+    Route::get('livestreams/{id}', [LivestreamController::class, 'show']);
+    Route::post('livestreams/{id}/book', [LivestreamController::class, 'book']);
+    Route::post('livestreams/{id}/join', [LivestreamController::class, 'join']);
+
     Route::middleware('role:admin')->group(function () {
         // Events
         Route::post('events', [EventController::class, 'store']);
@@ -71,6 +84,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('categories', [EventCategoryController::class, 'store']);
         Route::put('categories/{id}', [EventCategoryController::class, 'update']);
         Route::delete('categories/{id}', [EventCategoryController::class, 'destroy']);
+
+        // Admin livestreams
+        Route::get('admin/livestreams', [AdminLivestreamController::class, 'index']);
+        Route::post('admin/livestreams', [AdminLivestreamController::class, 'store']);
+        Route::put('admin/livestreams/{id}', [AdminLivestreamController::class, 'update']);
+        Route::post('admin/livestreams/{id}/go-live', [AdminLivestreamController::class, 'goLive']);
+        Route::post('admin/livestreams/{id}/end-stream', [AdminLivestreamController::class, 'endStream']);
+        Route::get('admin/livestreams/{id}/participants', [AdminLivestreamController::class, 'participants']);
     });
 
         Route::get('/admin/users', [AdminController::class, 'listUsers']);

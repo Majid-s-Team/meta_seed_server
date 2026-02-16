@@ -1,0 +1,499 @@
+openapi: 3.0.3
+info:
+  title: Livestream API (Meta Seed)
+  description: |
+    API for testing the Livestream module (Agora).
+    **Auth:** Use **Login** to get a Bearer token. Use that token in **Authorize** for all other endpoints.
+    **Admin endpoints** require a user with `role: admin`.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000/api
+    description: Local (php artisan serve)
+  - url: /api
+    description: Relative (use your deployed base URL)
+
+tags:
+  - name: Auth
+    description: Get token for testing
+  - name: User Livestreams
+    description: View upcoming, book, join streams
+  - name: Admin Livestreams
+    description: Schedule, edit, go live, end, view participants
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Laravel Sanctum token from Login response
+
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        status_code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: SUCCESS
+        data:
+          nullable: true
+      required:
+        - status_code
+        - message
+
+    Livestream:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: Q&A Live
+        description:
+          type: string
+          nullable: true
+        scheduled_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [scheduled, live, ended]
+        agora_channel:
+          type: string
+          example: qa-live-2026
+        price:
+          type: string
+          example: "0.00"
+        max_participants:
+          type: integer
+          example: 50
+        isBooked:
+          type: boolean
+          description: Present on user endpoints only
+
+    LivestreamCreate:
+      type: object
+      required:
+        - title
+        - scheduled_at
+        - agora_channel
+        - price
+        - max_participants
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          example: Q&A Live
+        description:
+          type: string
+          nullable: true
+          example: Weekly Q&A
+        scheduled_at:
+          type: string
+          format: date-time
+          example: "2026-02-20 19:00:00"
+        agora_channel:
+          type: string
+          maxLength: 64
+          example: qa-live-2026
+        price:
+          type: number
+          minimum: 0
+          example: 0
+        max_participants:
+          type: integer
+          minimum: 1
+          example: 50
+
+    LivestreamUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+        scheduled_at:
+          type: string
+          format: date-time
+        agora_channel:
+          type: string
+          maxLength: 64
+        price:
+          type: number
+          minimum: 0
+        max_participants:
+          type: integer
+          minimum: 1
+
+    JoinResponseData:
+      type: object
+      properties:
+        app_id:
+          type: string
+          description: Agora App ID for client SDK
+        channel:
+          type: string
+          description: Agora channel name
+        token:
+          type: string
+          description: RTC token (2h expiry)
+
+paths:
+  /login:
+    post:
+      tags: [Auth]
+      summary: Login (get Bearer token)
+      description: Returns a Sanctum token. Use it in Authorize for all livestream endpoints.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: admin@example.com
+                password:
+                  type: string
+                  format: password
+                  example: password
+      responses:
+        '200':
+          description: Login success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          token:
+                            type: string
+                            description: Bearer token for Authorization header
+                          user:
+                            type: object
+        '401':
+          description: Invalid credentials
+        '403':
+          description: User inactive
+
+  /livestreams/upcoming:
+    get:
+      tags: [User Livestreams]
+      summary: List upcoming streams
+      description: Returns scheduled livestreams (future). Includes isBooked for authenticated user.
+      security: [bearerAuth]
+      responses:
+        '200':
+          description: List of upcoming livestreams
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Livestream'
+
+  /livestreams/{id}:
+    get:
+      tags: [User Livestreams]
+      summary: Get livestream details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      security: [bearerAuth]
+      responses:
+        '200':
+          description: Livestream details with isBooked
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Livestream'
+        '404':
+          description: Livestream not found
+
+  /livestreams/{id}/book:
+    post:
+      tags: [User Livestreams]
+      summary: Book a stream
+      description: Book a scheduled stream. Required to join when it goes live. Fails if already booked or max participants reached.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      security: [bearerAuth]
+      responses:
+        '200':
+          description: Booked successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: Stream booked successfully
+        '400':
+          description: Already booked, max participants, or not scheduled
+        '404':
+          description: Livestream not found
+
+  /livestreams/{id}/join:
+    post:
+      tags: [User Livestreams]
+      summary: Join live stream (get Agora token)
+      description: |
+        Returns app_id, channel, and token for Agora SDK.
+        **Rules:** Stream must be LIVE; user must have booked the stream.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      security: [bearerAuth]
+      responses:
+        '200':
+          description: Agora credentials for client
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/JoinResponseData'
+        '400':
+          description: Stream is not live
+        '403':
+          description: Must book this stream to join
+        '404':
+          description: Livestream not found
+
+  /admin/livestreams:
+    get:
+      tags: [Admin Livestreams]
+      summary: List all livestreams (admin)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [scheduled, live, ended]
+          description: Filter by status
+      security: [bearerAuth]
+      responses:
+        '200':
+          description: List of livestreams
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Livestream'
+    post:
+      tags: [Admin Livestreams]
+      summary: Schedule a livestream
+      security: [bearerAuth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LivestreamCreate'
+      responses:
+        '201':
+          description: Livestream created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Livestream'
+        '422':
+          description: Validation error
+
+  /admin/livestreams/{id}:
+    put:
+      tags: [Admin Livestreams]
+      summary: Update livestream
+      description: Only scheduled streams can be edited.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      security: [bearerAuth]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LivestreamUpdate'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Livestream'
+        '400':
+          description: Only scheduled streams can be edited
+        '404':
+          description: Livestream not found
+
+  /admin/livestreams/{id}/go-live:
+    post:
+      tags: [Admin Livestreams]
+      summary: Go live
+      description: Set stream status to live. Only scheduled streams can go live.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      security: [bearerAuth]
+      responses:
+        '200':
+          description: Stream is now live
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Livestream'
+        '400':
+          description: Only scheduled streams can go live
+        '404':
+          description: Livestream not found
+
+  /admin/livestreams/{id}/end-stream:
+    post:
+      tags: [Admin Livestreams]
+      summary: End stream
+      description: Set stream status to ended.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      security: [bearerAuth]
+      responses:
+        '200':
+          description: Stream ended
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Livestream'
+        '404':
+          description: Livestream not found
+
+  /admin/livestreams/{id}/participants:
+    get:
+      tags: [Admin Livestreams]
+      summary: List participants
+      description: Users who booked this livestream.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      security: [bearerAuth]
+      responses:
+        '200':
+          description: Participants list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          livestream_id:
+                            type: integer
+                          title:
+                            type: string
+                          participants:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                user_id:
+                                  type: integer
+                                name:
+                                  type: string
+                                email:
+                                  type: string
+                                booked_at:
+                                  type: string
+                                  format: date-time
+        '404':
+          description: Livestream not found

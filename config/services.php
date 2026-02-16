@@ -31,4 +31,13 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'agora' => [
+        'app_id' => trim((string) env('AGORA_APP_ID', '')),
+        'app_certificate' => trim((string) env('AGORA_APP_CERTIFICATE', '')),
+    ],
+
+    'livestream' => [
+        'local_test' => filter_var(env('LIVESTREAM_LOCAL_TEST', false), FILTER_VALIDATE_BOOLEAN),
+    ],
+
 ];

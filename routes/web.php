@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LivestreamTestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,3 +17,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Livestream web testing interface (no auth; use API token on page)
+Route::get('/admin/livestream-test', [LivestreamTestController::class, 'adminPage'])->name('livestream-test.admin');
+Route::get('/livestream-test', [LivestreamTestController::class, 'userPage'])->name('livestream-test.user');
+Route::get('/livestream-test/publisher', [LivestreamTestController::class, 'publisherPage'])->name('livestream-test.publisher');

@@ -59,5 +59,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(Wallet::class);
     }
-  
+
+    public function livestreamBookings()
+    {
+        return $this->hasMany(LivestreamBooking::class);
+    }
 }
