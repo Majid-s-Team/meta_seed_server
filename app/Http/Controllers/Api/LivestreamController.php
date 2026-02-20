@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Livestream;
 use App\Models\LivestreamBooking;
+use App\Models\Transaction;
+use App\Models\Wallet;
 use App\Services\AgoraService;
 use App\Traits\ApiResponseTrait;
 use App\Constants\ResponseCode;
@@ -70,6 +72,8 @@ class LivestreamController extends Controller
 
     /**
      * Book a livestream (user gets a slot; required to join when live).
+     * Paid streams (price > 0): deduct coins from wallet, record transaction, set amount_paid on booking.
+     * Free streams: no charge. Access expiration can be set later (e.g. when stream ends).
      */
     public function book($id)
     {
@@ -94,11 +98,45 @@ class LivestreamController extends Controller
                 return $this->errorResponse(ResponseCode::BAD_REQUEST, 'Max participants reached');
             }
 
-            LivestreamBooking::create([
+            $amountPaid = 0;
+            $priceCoins = (int) round((float) $livestream->price);
+
+            if ($priceCoins > 0) {
+                $wallet = Wallet::firstOrCreate(
+                    ['user_id' => $user->id],
+                    ['balance' => 0]
+                );
+                if ($wallet->balance < $priceCoins) {
+                    return $this->errorResponse(ResponseCode::BAD_REQUEST, 'Insufficient coins to book this stream');
+                }
+                $wallet->decrement('balance', $priceCoins);
+                $amountPaid = (float) $livestream->price;
+                Transaction::create([
+                    'user_id' => $user->id,
+                    'type' => 'debit',
+                    'amount' => $priceCoins,
+                    'description' => 'Livestream booking: ' . $livestream->title,
+                    'reference_type' => 'livestream_booking',
+                    'reference_id' => null, // set after booking created
+                ]);
+            }
+
+            $booking = LivestreamBooking::create([
                 'user_id' => $user->id,
                 'livestream_id' => $livestream->id,
                 'booked_at' => now(),
+                'amount_paid' => $amountPaid,
+                'access_expires_at' => null, // optional: set when stream ends for time-limited replay
             ]);
+
+            if ($priceCoins > 0) {
+                Transaction::where('user_id', $user->id)
+                    ->where('reference_type', 'livestream_booking')
+                    ->whereNull('reference_id')
+                    ->latest('id')
+                    ->first()
+                    ?->update(['reference_id' => $booking->id]);
+            }
 
             return $this->successResponse('Stream booked successfully', ['message' => 'Stream booked successfully']);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -143,6 +181,10 @@ class LivestreamController extends Controller
                 if (!$booking) {
                     return $this->errorResponse(ResponseCode::FORBIDDEN, 'You must book this stream to join');
                 }
+                // Access expiration: block join if booking access has expired (e.g. post-stream replay window ended)
+                if ($booking->isAccessExpired()) {
+                    return $this->errorResponse(ResponseCode::FORBIDDEN, 'Access to this stream has expired');
+                }
             }
 
             $agoraService = app(AgoraService::class);
@@ -164,6 +206,50 @@ class LivestreamController extends Controller
             return $this->errorResponse(ResponseCode::BAD_REQUEST, $e->getMessage());
         } catch (\RuntimeException $e) {
             return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, $e->getMessage());
+        } catch (\Exception $e) {
+            return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR');
+        }
+    }
+
+    /**
+     * Analytics: client reports viewer joined. Increments current_viewer_count and total_viewer_count,
+     * updates peak_viewer_count if current exceeds it. Optional; improves admin dashboard metrics.
+     */
+    public function viewerJoined($id)
+    {
+        try {
+            $livestream = Livestream::findOrFail($id);
+            if ($livestream->status !== 'live') {
+                return $this->errorResponse(ResponseCode::BAD_REQUEST, 'Stream is not live');
+            }
+            $livestream->increment('current_viewer_count');
+            $livestream->increment('total_viewer_count');
+            $current = $livestream->fresh()->current_viewer_count;
+            $peak = $livestream->peak_viewer_count ?? 0;
+            if ($current > $peak) {
+                $livestream->update(['peak_viewer_count' => $current]);
+            }
+            return $this->successResponse('SUCCESS', ['current_viewer_count' => $livestream->fresh()->current_viewer_count]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->errorResponse(ResponseCode::NOT_FOUND, 'Livestream not found');
+        } catch (\Exception $e) {
+            return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR');
+        }
+    }
+
+    /**
+     * Analytics: client reports viewer left. Decrements current_viewer_count (floor 0).
+     */
+    public function viewerLeft($id)
+    {
+        try {
+            $livestream = Livestream::findOrFail($id);
+            if ($livestream->status === 'live' && $livestream->current_viewer_count > 0) {
+                $livestream->decrement('current_viewer_count');
+            }
+            return $this->successResponse('SUCCESS', ['current_viewer_count' => $livestream->fresh()->current_viewer_count]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->errorResponse(ResponseCode::NOT_FOUND, 'Livestream not found');
         } catch (\Exception $e) {
             return $this->errorResponse(ResponseCode::INTERNAL_SERVER_ERROR, 'SERVER_ERROR');
         }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\{Event, EventCategory, EventBooking, Wallet, Transaction};
+use App\Notifications\TicketPurchaseNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -239,6 +240,8 @@ public function index(Request $request)
                 'amount' => $event->coins,
                 'description' => 'Event booking: ' . $event->title,
             ]);
+
+            $user->notify(new TicketPurchaseNotification($event->title, $event->date, $event->time));
 
             return $this->successResponse('Event booked successfully', ['message' => 'Event booked successfully']);
 

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Event extends Model {
     protected $fillable = [
         'title', 'description', 'date', 'time', 'total_seats', 'available_seats',
-        'coins', 'category_id', 'is_online', 'status'
+        'coins', 'category_id', 'is_online', 'status', 'cover_image'
     ];
 
     public function category() {

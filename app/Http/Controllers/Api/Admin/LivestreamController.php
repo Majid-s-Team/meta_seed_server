@@ -46,6 +46,17 @@ class LivestreamController extends Controller
             $data = $request->validated();
             $data['created_by'] = auth()->id();
             $data['status'] = 'scheduled';
+            $data['broadcast_type'] = $data['broadcast_type'] ?? Livestream::BROADCAST_TYPE_AGORA_RTC;
+
+            if (($data['broadcast_type'] ?? '') === Livestream::BROADCAST_TYPE_RTMP) {
+                $channel = $data['agora_channel'];
+                if (empty($data['rtmp_url'] ?? null)) {
+                    $data['rtmp_url'] = Livestream::defaultRtmpUrlForChannel($channel);
+                }
+                if (empty($data['rtmp_stream_key'] ?? null)) {
+                    $data['rtmp_stream_key'] = $channel;
+                }
+            }
 
             $livestream = Livestream::create($data);
 
@@ -67,7 +78,17 @@ class LivestreamController extends Controller
                 return $this->errorResponse(ResponseCode::BAD_REQUEST, 'Only scheduled streams can be edited');
             }
 
-            $livestream->update($request->validated());
+            $data = $request->validated();
+            if (isset($data['broadcast_type']) && $data['broadcast_type'] === Livestream::BROADCAST_TYPE_RTMP) {
+                $channel = $data['agora_channel'] ?? $livestream->agora_channel;
+                if (empty($data['rtmp_url'] ?? null)) {
+                    $data['rtmp_url'] = Livestream::defaultRtmpUrlForChannel($channel);
+                }
+                if (empty($data['rtmp_stream_key'] ?? null)) {
+                    $data['rtmp_stream_key'] = $channel;
+                }
+            }
+            $livestream->update($data);
 
             return $this->successResponse('SUCCESS', $livestream->fresh());
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -89,7 +110,11 @@ class LivestreamController extends Controller
                 return $this->errorResponse(ResponseCode::BAD_REQUEST, 'Only scheduled streams can go live');
             }
 
-            $livestream->update(['status' => 'live']);
+            $livestream->update([
+                'status' => 'live',
+                'stream_started_at' => now(),
+                'stream_health_status' => Livestream::STREAM_HEALTH_STATUS_WAITING,
+            ]);
 
             return $this->successResponse('SUCCESS', $livestream->fresh());
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -100,14 +125,31 @@ class LivestreamController extends Controller
     }
 
     /**
-     * End the stream. Sets status to ended.
+     * End the stream. Sets status to ended, ended_at, current_viewer_count = 0,
+     * stream_health_status, stream_duration_seconds, revenue_earned (aligned with web admin).
      */
     public function endStream($id)
     {
         try {
             $livestream = Livestream::findOrFail($id);
+            if ($livestream->status !== 'live') {
+                return $this->errorResponse(ResponseCode::BAD_REQUEST, 'Stream is not live');
+            }
+            $started = $livestream->stream_started_at ?? $livestream->updated_at;
+            $durationSeconds = $started ? (int) now()->diffInSeconds($started) : 0;
+            $revenue = (float) $livestream->bookings()->sum('amount_paid');
+            $endedAt = now();
 
-            $livestream->update(['status' => 'ended']);
+            $livestream->update([
+                'status' => 'ended',
+                'ended_at' => $endedAt,
+                'current_viewer_count' => 0,
+                'stream_health_status' => Livestream::STREAM_HEALTH_STATUS_OFFLINE,
+                'stream_duration_seconds' => $durationSeconds,
+                'revenue_earned' => $revenue,
+            ]);
+            $expiresAt = $endedAt->copy()->addHours(config('services.livestream.access_expiry_hours', 24));
+            $livestream->bookings()->whereNull('access_expires_at')->update(['access_expires_at' => $expiresAt]);
 
             return $this->successResponse('SUCCESS', $livestream->fresh());
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

@@ -23,9 +23,13 @@ use App\Http\Controllers\Api\StaticPageController;
 use App\Http\Controllers\Api\EventBookingController;
 use App\Http\Controllers\Api\LivestreamController;
 use App\Http\Controllers\Api\Admin\LivestreamController as AdminLivestreamController;
+use App\Http\Controllers\Api\AgoraWebhookController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Agora webhook: RTMP stream start/stop (no auth; validate signature/IP in controller)
+Route::post('agora/webhook', AgoraWebhookController::class)->name('agora.webhook');
 
 // Local livestream testing: no auth when LIVESTREAM_LOCAL_TEST=true (returns 404 when disabled)
 Route::get('livestreams/test-live', [LivestreamController::class, 'testLive']);
@@ -73,6 +77,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('livestreams/{id}', [LivestreamController::class, 'show']);
     Route::post('livestreams/{id}/book', [LivestreamController::class, 'book']);
     Route::post('livestreams/{id}/join', [LivestreamController::class, 'join']);
+    Route::post('livestreams/{id}/viewer-joined', [LivestreamController::class, 'viewerJoined']);
+    Route::post('livestreams/{id}/viewer-left', [LivestreamController::class, 'viewerLeft']);
 
     Route::middleware('role:admin')->group(function () {
         // Events

@@ -34,10 +34,13 @@ return [
     'agora' => [
         'app_id' => trim((string) env('AGORA_APP_ID', '')),
         'app_certificate' => trim((string) env('AGORA_APP_CERTIFICATE', '')),
+        'webhook_secret' => trim((string) env('AGORA_WEBHOOK_SECRET', '')),
+        'webhook_allowed_ips' => array_filter(array_map('trim', explode(',', env('AGORA_WEBHOOK_ALLOWED_IPS', '')))),
     ],
 
     'livestream' => [
         'local_test' => filter_var(env('LIVESTREAM_LOCAL_TEST', false), FILTER_VALIDATE_BOOLEAN),
+        'access_expiry_hours' => (int) env('LIVESTREAM_ACCESS_EXPIRY_HOURS', 24),
     ],
 
 ];

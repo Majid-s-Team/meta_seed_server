@@ -12,7 +12,10 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        $schedule->command('events:auto-complete')->daily();
+        $schedule->command('notifications:event-reminders')->dailyAt('09:00');
+        // Fallback: mark RTMP streams offline when no activity (respects manual override)
+        $schedule->command('livestream:health-check')->everyMinute();
     }
 
     /**
