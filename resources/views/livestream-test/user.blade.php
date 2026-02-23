@@ -163,10 +163,10 @@
         }
 
         const { app_id, channel, token: rtcToken } = data.data;
-        // In local test mode: always use null token so Agora auth never blocks
-        const tokenToUse = LOCAL_TEST ? null : ((rtcToken === null || rtcToken === undefined || rtcToken === '') ? null : rtcToken);
-        if (LOCAL_TEST) {
-            console.log('LOCAL TEST MODE — skipping token validation');
+        // Use token when API provides it (required when Agora project uses APP ID + Certificate).
+        const tokenToUse = (rtcToken === null || rtcToken === undefined || rtcToken === '') ? null : rtcToken;
+        if (LOCAL_TEST && !tokenToUse) {
+            console.log('LOCAL TEST MODE — no token from API (project may allow join without token)');
         }
         showChannel(channel);
         setStatusLine('Connecting to Agora...');
@@ -184,11 +184,17 @@
                 await agoraClient.join(app_id, channel, tokenToUse, null);
                 joined = true;
             } catch (joinErr) {
-                if (LOCAL_TEST && (String(joinErr.message || joinErr).toLowerCase().indexOf('invalid token') !== -1 || String(joinErr.message || joinErr).indexOf('authorized failed') !== -1)) {
-                    console.warn('[Viewer] Join failed with token error in local test — retrying without token');
-                    await agoraClient.join(app_id, channel, null, null);
-                    joined = true;
-                } else {
+                const jmsg = String(joinErr.message || joinErr);
+                const isTokenError = jmsg.toLowerCase().indexOf('invalid token') !== -1 || jmsg.indexOf('authorized failed') !== -1;
+                if (!joined && tokenToUse !== null && (isTokenError || jmsg.indexOf('dynamic use static key') !== -1)) {
+                    console.warn('[Viewer] Join failed with token error — retrying without token (for token-optional projects)');
+                    try {
+                        await agoraClient.join(app_id, channel, null, null);
+                        joined = true;
+                    } catch (_) {
+                        throw joinErr;
+                    }
+                } else if (!joined) {
                     throw joinErr;
                 }
             }
