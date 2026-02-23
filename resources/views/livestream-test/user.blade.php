@@ -170,7 +170,9 @@
         }
         showChannel(channel);
         setStatusLine('Connecting to Agora...');
-        setStatus(LOCAL_TEST ? 'Connecting (local test, no token)...' : 'Connecting...');
+        setStatus(tokenToUse
+            ? 'Connecting with token (required for APP ID + Certificate projects)...'
+            : (LOCAL_TEST ? 'Connecting without token (use APP ID only project or set AGORA_APP_CERTIFICATE in .env)...' : 'Connecting...'));
 
         try {
             if (agoraClient) {
@@ -237,7 +239,7 @@
             const isTokenError = msg.toLowerCase().indexOf('invalid token') !== -1 || msg.indexOf('authorized failed') !== -1;
             const isGatewayError = msg.indexOf('CAN_NOT_GET_GATEWAY_SERVER') !== -1 || msg.indexOf('dynamic use static key') !== -1;
             if (LOCAL_TEST && (isTokenError || isGatewayError)) {
-                setStatus('LOCAL TEST MODE ACTIVE. Could not connect to Agora. In Agora Console set project to Testing mode (no token required) and check network.', false);
+                setStatus('LOCAL TEST MODE. Could not connect to Agora. Set AGORA_APP_CERTIFICATE in .env on the server so the API returns a token (required for most projects). Or in Agora Console create a new project with APP ID only (no token) and use that App ID.', false);
                 setStatusLine('Local test — Agora unreachable');
                 console.warn('[Viewer] Agora join failed in local test:', err);
             } else if (LOCAL_TEST) {
