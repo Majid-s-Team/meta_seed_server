@@ -34,10 +34,15 @@
     <button type="submit" class="admin-btn-ghost">Filter</button>
 </form>
 
+<form id="bulkDeleteForm" method="POST" action="{{ route('admin.livestreams.bulk-delete') }}" class="hidden">
+    @csrf
+    <input type="hidden" name="ids" id="bulkDeleteIds">
+</form>
 <div class="admin-card overflow-hidden">
     <table class="admin-table w-full">
         <thead>
             <tr>
+                <th><input type="checkbox" id="selectAll" class="rounded border-white/20 bg-white/5 text-[#6A5CFF]" title="Select all"></th>
                 <th>Title</th>
                 <th>Scheduled</th>
                 <th>Channel</th>
@@ -53,6 +58,7 @@
         <tbody>
             @forelse($livestreams as $ls)
                 <tr>
+                    <td><input type="checkbox" name="ids[]" value="{{ $ls->id }}" class="row-select rounded border-white/20 bg-white/5 text-[#6A5CFF]" {{ $ls->status === 'live' ? 'disabled' : '' }}></td>
                     <td class="font-medium text-white">{{ $ls->title }}</td>
                     <td class="text-[var(--meta-text-secondary)]">{{ $ls->scheduled_at?->format('M d, H:i') }}</td>
                     <td class="text-[var(--meta-text-muted)] font-mono text-xs">{{ $ls->agora_channel }}</td>
@@ -114,7 +120,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="10">
+                    <td colspan="11">
                         @include('admin.partials.empty', ['icon' => 'radio', 'title' => 'No livestreams yet', 'description' => 'Schedule a stream to start broadcasting.'])
                     </td>
                 </tr>
@@ -125,5 +131,26 @@
         <div class="px-5 py-4 border-t border-[var(--meta-border)]">{{ $livestreams->links('admin.partials.pagination') }}</div>
     @endif
 </div>
-<script>if (typeof lucide !== 'undefined') lucide.createIcons();</script>
+<div class="mt-3 flex gap-2" id="bulkActions" style="display: none;">
+    <button type="button" onclick="submitBulkDelete()" class="admin-btn-ghost text-red-400 hover:bg-red-500/10">Delete selected (scheduled/ended only)</button>
+</div>
+<script>
+if (typeof lucide !== 'undefined') lucide.createIcons();
+document.getElementById('selectAll')?.addEventListener('change', function() {
+    document.querySelectorAll('.row-select:not([disabled])').forEach(cb => { cb.checked = this.checked; });
+    toggleBulkActions();
+});
+document.querySelectorAll('.row-select').forEach(cb => { cb.addEventListener('change', toggleBulkActions); });
+function toggleBulkActions() {
+    const checked = document.querySelectorAll('.row-select:checked');
+    document.getElementById('bulkActions').style.display = checked.length ? 'flex' : 'none';
+}
+function submitBulkDelete() {
+    const ids = Array.from(document.querySelectorAll('.row-select:checked')).map(c => c.value);
+    if (!ids.length) return;
+    if (!confirm('Delete ' + ids.length + ' selected livestream(s)? Only scheduled/ended streams will be deleted.')) return;
+    document.getElementById('bulkDeleteIds').value = ids.join(',');
+    document.getElementById('bulkDeleteForm').submit();
+}
+</script>
 @endsection

@@ -143,6 +143,21 @@ class LivestreamController extends Controller
         return redirect()->route('admin.livestreams.index')->with('success', 'Livestream deleted.');
     }
 
+    public function bulkDestroy(Request $request)
+    {
+        $ids = $request->input('ids');
+        if (is_string($ids)) {
+            $ids = array_filter(array_map('intval', explode(',', $ids)));
+        } else {
+            $ids = array_filter((array) ($ids ?? []));
+        }
+        if (empty($ids)) {
+            return redirect()->route('admin.livestreams.index')->with('error', 'No livestreams selected.');
+        }
+        $deleted = Livestream::whereIn('id', $ids)->whereIn('status', ['scheduled', 'ended'])->delete();
+        return redirect()->route('admin.livestreams.index')->with('success', $deleted ? "{$deleted} livestream(s) deleted." : 'No livestreams deleted (only scheduled/ended can be deleted).');
+    }
+
     /**
      * Broadcast panel: RTMP connection details (RTLS URL + stream key), OBS setup, connection status.
      * For RTMP streams, generates stream key via Agora RTLS API if not yet set.

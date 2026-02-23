@@ -29,6 +29,7 @@
     <table class="admin-table w-full">
         <thead>
             <tr>
+                <th><input type="checkbox" id="selectAll" class="rounded border-white/20 bg-white/5 text-[#6A5CFF]" title="Select all"></th>
                 <th>ID</th>
                 <th>Name</th>
                 <th>Email</th>
@@ -41,6 +42,7 @@
         <tbody>
             @forelse($users as $u)
                 <tr>
+                    <td><input type="checkbox" name="ids[]" value="{{ $u->id }}" class="row-select rounded border-white/20 bg-white/5 text-[#6A5CFF]"></td>
                     <td class="text-[var(--meta-text-muted)]">{{ $u->id }}</td>
                     <td class="font-medium text-white">{{ $u->name }}</td>
                     <td class="text-[var(--meta-text-secondary)]">{{ $u->email }}</td>
@@ -57,7 +59,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7">
+                    <td colspan="8">
                         @include('admin.partials.empty', ['icon' => 'users', 'title' => 'No users found', 'description' => 'Try adjusting your search or filters.'])
                     </td>
                 </tr>
@@ -68,5 +70,10 @@
         <div class="px-5 py-4 border-t border-[var(--meta-border)]">{{ $users->links('admin.partials.pagination') }}</div>
     @endif
 </div>
-<script>if (typeof lucide !== 'undefined') lucide.createIcons();</script>
+<script>
+if (typeof lucide !== 'undefined') lucide.createIcons();
+document.getElementById('selectAll')?.addEventListener('change', function() {
+    document.querySelectorAll('.row-select').forEach(cb => { cb.checked = this.checked; });
+});
+</script>
 @endsection

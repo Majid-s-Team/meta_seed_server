@@ -9,7 +9,7 @@
 </div>
 
 <div class="admin-card p-6 max-w-2xl">
-    <form method="POST" action="{{ route('admin.events.store') }}">
+    <form method="POST" action="{{ route('admin.events.store') }}" enctype="multipart/form-data">
         @csrf
         <div class="space-y-4">
             <div>
@@ -36,7 +36,7 @@
                 </div>
                 <div>
                     <label class="block text-[var(--meta-text-secondary)] text-sm font-medium mb-2">Time *</label>
-                    <input type="text" name="time" value="{{ old('time') }}" placeholder="e.g. 18:00" required class="admin-input">
+                    <input type="time" name="time" value="{{ old('time') }}" required class="admin-input">
                 </div>
             </div>
             <div class="grid grid-cols-3 gap-4">
@@ -69,8 +69,11 @@
                 </div>
             </div>
             <div>
-                <label class="block text-[var(--meta-text-secondary)] text-sm font-medium mb-2">Cover image URL</label>
-                <input type="text" name="cover_image" value="{{ old('cover_image') }}" placeholder="https://..." class="admin-input">
+                <label class="block text-[var(--meta-text-secondary)] text-sm font-medium mb-2">Cover image</label>
+                <p class="text-[var(--meta-text-muted)] text-xs mb-1">Upload a file or paste a URL (URL is used if both provided)</p>
+                <input type="file" name="cover_image_file" accept="image/*" class="admin-input block w-full text-sm text-[var(--meta-text-secondary)] file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-white/10 file:text-white">
+                <input type="text" name="cover_image" value="{{ old('cover_image') }}" placeholder="Or paste image URL (https://...)" class="admin-input mt-2">
+                @error('cover_image_file')<p class="text-red-400 text-xs mt-1">{{ $message }}</p>@enderror
             </div>
         </div>
         <div class="mt-6 flex gap-3">

@@ -10,6 +10,8 @@ use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\TransactionController;
 use App\Http\Controllers\Admin\CmsController;
+use App\Http\Controllers\Admin\EventCategoryController;
+use App\Http\Controllers\Admin\EventRecordingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -33,7 +35,12 @@ Route::middleware(['auth', 'admin.panel'])->prefix('admin')->name('admin.')->gro
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('events', AdminEventController::class)->except(['show']);
+    Route::post('events/bulk-delete', [AdminEventController::class, 'bulkDestroy'])->name('events.bulk-delete');
+    Route::resource('categories', EventCategoryController::class)->except(['show']);
+    Route::post('categories/bulk-delete', [EventCategoryController::class, 'bulkDestroy'])->name('categories.bulk-delete');
+    Route::resource('recordings', EventRecordingController::class)->except(['show']);
     Route::resource('livestreams', AdminLivestreamController::class)->except(['show']);
+    Route::post('livestreams/bulk-delete', [AdminLivestreamController::class, 'bulkDestroy'])->name('livestreams.bulk-delete');
     Route::get('livestreams/{livestream}/broadcast', [AdminLivestreamController::class, 'broadcast'])->name('livestreams.broadcast');
     Route::post('livestreams/{livestream}/go-live', [AdminLivestreamController::class, 'goLive'])->name('livestreams.go-live');
     Route::post('livestreams/{livestream}/end-stream', [AdminLivestreamController::class, 'endStream'])->name('livestreams.end-stream');

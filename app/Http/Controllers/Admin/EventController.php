@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\EventCategory;
+use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class EventController extends Controller
 {
@@ -43,8 +45,13 @@ class EventController extends Controller
             'is_online' => 'required|boolean',
             'status' => 'required|in:active,inactive,completed',
             'cover_image' => 'nullable|string|max:500',
+            'cover_image_file' => 'nullable|image|max:5120',
         ]);
         $validated['available_seats'] = $validated['available_seats'] ?? $validated['total_seats'];
+        if ($request->hasFile('cover_image_file')) {
+            $validated['cover_image'] = $this->uploadCoverImage($request->file('cover_image_file'));
+        }
+        unset($validated['cover_image_file']);
         Event::create($validated);
         return redirect()->route('admin.events.index')->with('success', 'Event created.');
     }
@@ -69,7 +76,12 @@ class EventController extends Controller
             'is_online' => 'sometimes|boolean',
             'status' => 'sometimes|in:active,inactive,completed',
             'cover_image' => 'nullable|string|max:500',
+            'cover_image_file' => 'nullable|image|max:5120',
         ]);
+        if ($request->hasFile('cover_image_file')) {
+            $validated['cover_image'] = $this->uploadCoverImage($request->file('cover_image_file'));
+        }
+        unset($validated['cover_image_file']);
         $soldCount = $event->bookings()->count();
         if (isset($validated['total_seats']) && $validated['total_seats'] < $soldCount) {
             return back()->withErrors(['total_seats' => 'Total seats cannot be less than already sold (' . $soldCount . ').']);
@@ -91,5 +103,38 @@ class EventController extends Controller
         }
         $event->delete();
         return redirect()->route('admin.events.index')->with('success', 'Event deleted.');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $ids = $request->input('ids');
+        if (is_string($ids)) {
+            $ids = array_filter(array_map('intval', explode(',', $ids)));
+        } else {
+            $ids = array_filter((array) ($ids ?? []));
+        }
+        if (empty($ids)) {
+            return redirect()->route('admin.events.index')->with('error', 'No events selected.');
+        }
+        $deleted = 0;
+        foreach (Event::whereIn('id', $ids)->get() as $event) {
+            if (!$event->bookings()->exists()) {
+                $event->delete();
+                $deleted++;
+            }
+        }
+        return redirect()->route('admin.events.index')->with('success', $deleted ? "{$deleted} event(s) deleted." : 'No events deleted (events with bookings were skipped).');
+    }
+
+    private function uploadCoverImage(\Illuminate\Http\UploadedFile $file): string
+    {
+        if (CloudinaryService::isConfigured()) {
+            $url = app(CloudinaryService::class)->uploadImage($file);
+            if ($url) {
+                return $url;
+            }
+        }
+        $path = $file->store('events', 'public');
+        return Storage::disk('public')->url($path);
     }
 }

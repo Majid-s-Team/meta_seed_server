@@ -12,7 +12,7 @@ class Event extends Model {
     ];
 
     public function category() {
-        return $this->belongsTo(EventCategory::class);
+        return $this->belongsTo(EventCategory::class, 'category_id');
     }
 
     public function bookings() {

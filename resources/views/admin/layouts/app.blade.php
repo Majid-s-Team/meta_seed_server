@@ -167,9 +167,17 @@
                     <i data-lucide="calendar-days"></i>
                     <span>Events</span>
                 </a>
+                <a href="{{ route('admin.categories.index') }}" class="admin-sidebar-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
+                    <i data-lucide="folder"></i>
+                    <span>Categories</span>
+                </a>
                 <a href="{{ route('admin.livestreams.index') }}" class="admin-sidebar-link {{ request()->routeIs('admin.livestreams.*') ? 'active' : '' }}">
                     <i data-lucide="radio"></i>
                     <span>Livestreams</span>
+                </a>
+                <a href="{{ route('admin.recordings.index') }}" class="admin-sidebar-link {{ request()->routeIs('admin.recordings.*') ? 'active' : '' }}">
+                    <i data-lucide="video"></i>
+                    <span>Recordings</span>
                 </a>
                 <a href="{{ route('admin.bookings.index') }}" class="admin-sidebar-link {{ request()->routeIs('admin.bookings.*') ? 'active' : '' }}">
                     <i data-lucide="clipboard-list"></i>

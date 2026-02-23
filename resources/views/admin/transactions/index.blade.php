@@ -23,6 +23,7 @@
     <table class="admin-table w-full">
         <thead>
             <tr>
+                <th><input type="checkbox" id="selectAll" class="rounded border-white/20 bg-white/5 text-[#6A5CFF]" title="Select all"></th>
                 <th>ID</th>
                 <th>User</th>
                 <th>Type</th>
@@ -33,6 +34,7 @@
         <tbody>
             @forelse($transactions as $t)
                 <tr>
+                    <td><input type="checkbox" name="ids[]" value="{{ $t->id }}" class="row-select rounded border-white/20 bg-white/5 text-[#6A5CFF]"></td>
                     <td class="text-[var(--meta-text-muted)]">{{ $t->id }}</td>
                     <td class="font-medium text-white">{{ $t->user->name ?? '-' }}</td>
                     <td class="text-[var(--meta-text-secondary)]">{{ $t->type }}</td>
@@ -41,7 +43,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5">
+                    <td colspan="6">
                         @include('admin.partials.empty', ['icon' => 'wallet', 'title' => 'No transactions', 'description' => 'Transaction history will appear here.'])
                     </td>
                 </tr>
@@ -52,5 +54,10 @@
         <div class="px-5 py-4 border-t border-[var(--meta-border)]">{{ $transactions->links('admin.partials.pagination') }}</div>
     @endif
 </div>
-<script>if (typeof lucide !== 'undefined') lucide.createIcons();</script>
+<script>
+if (typeof lucide !== 'undefined') lucide.createIcons();
+document.getElementById('selectAll')?.addEventListener('change', function() {
+    document.querySelectorAll('.row-select').forEach(cb => { cb.checked = this.checked; });
+});
+</script>
 @endsection

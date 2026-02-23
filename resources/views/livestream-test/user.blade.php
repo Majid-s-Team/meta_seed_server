@@ -172,7 +172,7 @@
         try {
             if (agoraClient) { await agoraClient.leave(); agoraClient = null; }
             // Use h264 to match typical OBS/RTMP output; vp8 can miss RTMP-injected streams
-            agoraClient = AgoraRTC.createClient({ mode: 'live', codec: 'h264' });
+            agoraClient = AgoraRTC.createClient({ mode: 'live', codec: '' });
             let joined = false;
             try {
                 await agoraClient.join(app_id, channel, tokenToUse, joinUid);
