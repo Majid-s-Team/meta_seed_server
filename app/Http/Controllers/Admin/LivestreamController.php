@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Livestream;
 use App\Models\LivestreamStreamLog;
 use App\Notifications\LiveStreamStartedNotification;
+use App\Services\AgoraRtlsService;
 use Illuminate\Http\Request;
 
 class LivestreamController extends Controller
@@ -52,19 +53,30 @@ class LivestreamController extends Controller
         $validated['overlay_enabled'] = $request->boolean('overlay_enabled');
         $validated['recording_enabled'] = $request->boolean('recording_enabled');
 
-        // Auto-generate RTMP credentials when using RTMP broadcast and not provided
+        // Auto-generate RTMP credentials via Agora RTLS API when using RTMP and not provided
+        $streamKeyWarning = null;
         if (($validated['broadcast_type'] ?? '') === Livestream::BROADCAST_TYPE_RTMP) {
             $channel = $validated['agora_channel'];
             if (empty($validated['rtmp_url'])) {
                 $validated['rtmp_url'] = Livestream::defaultRtmpUrlForChannel($channel);
             }
             if (empty($validated['rtmp_stream_key'])) {
-                $validated['rtmp_stream_key'] = $channel;
+                try {
+                    $rtls = app(AgoraRtlsService::class);
+                    $validated['rtmp_stream_key'] = $rtls->createStreamKey($channel, '1', 0);
+                } catch (\Throwable $e) {
+                    // Still create the livestream; key can be generated on broadcast page when env is fixed
+                    $streamKeyWarning = 'Stream key could not be generated: ' . $e->getMessage() . '. Set AGORA_APP_CERTIFICATE in .env or generate on the broadcast page.';
+                }
             }
         }
 
         Livestream::create($validated);
-        return redirect()->route('admin.livestreams.index')->with('success', 'Livestream scheduled.');
+        $redirect = redirect()->route('admin.livestreams.index')->with('success', 'Livestream scheduled.');
+        if ($streamKeyWarning) {
+            $redirect->with('warning', $streamKeyWarning);
+        }
+        return $redirect;
     }
 
     public function edit(Livestream $livestream)
@@ -95,19 +107,31 @@ class LivestreamController extends Controller
             'scoreboard_overlay_url' => 'nullable|string|max:500',
             'recording_enabled' => 'nullable|boolean',
         ]);
+        $streamKeyWarning = null;
         if (isset($validated['broadcast_type']) && $validated['broadcast_type'] === Livestream::BROADCAST_TYPE_RTMP) {
             $channel = $validated['agora_channel'] ?? $livestream->agora_channel;
             if (empty($validated['rtmp_url'])) {
                 $validated['rtmp_url'] = Livestream::defaultRtmpUrlForChannel($channel);
             }
             if (empty($validated['rtmp_stream_key'])) {
-                $validated['rtmp_stream_key'] = $channel;
+                try {
+                    $rtls = app(AgoraRtlsService::class);
+                    $validated['rtmp_stream_key'] = $rtls->createStreamKey($channel, (string) $livestream->id, 0);
+                } catch (\Throwable $e) {
+                    $streamKeyWarning = 'Stream key could not be generated. Set AGORA_APP_CERTIFICATE or generate on broadcast page.';
+                    // Keep existing key if any; otherwise leave empty
+                    $validated['rtmp_stream_key'] = $livestream->rtmp_stream_key;
+                }
             }
         }
         $validated['overlay_enabled'] = $request->boolean('overlay_enabled');
         $validated['recording_enabled'] = $request->boolean('recording_enabled');
         $livestream->update($validated);
-        return redirect()->route('admin.livestreams.index')->with('success', 'Livestream updated.');
+        $redirect = redirect()->route('admin.livestreams.index')->with('success', 'Livestream updated.');
+        if (!empty($streamKeyWarning)) {
+            $redirect->with('warning', $streamKeyWarning);
+        }
+        return $redirect;
     }
 
     public function destroy(Livestream $livestream)
@@ -120,11 +144,30 @@ class LivestreamController extends Controller
     }
 
     /**
-     * Broadcast panel: RTMP connection details, OBS setup instructions, connection status, health, bitrate/uptime placeholders.
+     * Broadcast panel: RTMP connection details (RTLS URL + stream key), OBS setup, connection status.
+     * For RTMP streams, generates stream key via Agora RTLS API if not yet set.
      */
     public function broadcast(Livestream $livestream)
     {
-        return view('admin.livestreams.broadcast', compact('livestream'));
+        $streamKeyError = null;
+        if ($livestream->broadcast_type === Livestream::BROADCAST_TYPE_RTMP
+            && empty($livestream->rtmp_stream_key)) {
+            try {
+                $rtls = app(AgoraRtlsService::class);
+                $livestream->rtmp_stream_key = $rtls->createStreamKey($livestream->agora_channel, (string) $livestream->id, 0);
+                if (empty($livestream->rtmp_url)) {
+                    $livestream->rtmp_url = Livestream::defaultRtmpUrlForChannel($livestream->agora_channel);
+                }
+                $livestream->save();
+            } catch (\Throwable $e) {
+                $streamKeyError = $e->getMessage();
+                if (empty($livestream->rtmp_url)) {
+                    $livestream->rtmp_url = Livestream::defaultRtmpUrlForChannel($livestream->agora_channel);
+                    $livestream->save();
+                }
+            }
+        }
+        return view('admin.livestreams.broadcast', compact('livestream', 'streamKeyError'));
     }
 
     /**

@@ -15,10 +15,15 @@
 @if(session('error'))
     <div class="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{{ session('error') }}</div>
 @endif
+@if(isset($streamKeyError) && $streamKeyError)
+    <div class="mb-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm">
+        <strong>Stream key not generated.</strong> {{ $streamKeyError }} Set <code class="bg-black/30 px-1 rounded">AGORA_RTLS_CUSTOMER_ID</code> and <code class="bg-black/30 px-1 rounded">AGORA_RTLS_CUSTOMER_SECRET</code> in .env (from Agora Console → Developer Toolkit → RESTful API) and refresh this page to generate the key.
+    </div>
+@endif
 
 @php
     $rtmpUrl = $livestream->rtmp_url ?: \App\Models\Livestream::defaultRtmpUrlForChannel($livestream->agora_channel);
-    $streamKey = $livestream->rtmp_stream_key ?: $livestream->agora_channel;
+    $streamKey = $livestream->rtmp_stream_key ?: (isset($streamKeyError) ? '[Set AGORA_RTLS_CUSTOMER_ID & AGORA_RTLS_CUSTOMER_SECRET and refresh]' : $livestream->agora_channel);
     $healthStatus = $livestream->stream_health_status ?? $livestream->stream_health;
     $isWaiting = in_array($healthStatus, ['waiting_for_broadcaster', \App\Models\Livestream::STREAM_HEALTH_STATUS_WAITING], true);
 @endphp

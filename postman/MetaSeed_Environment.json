@@ -1,0 +1,12 @@
+{
+	"id": "meta-seed-env",
+	"name": "MetaSeed Local",
+	"values": [
+		{ "key": "base_url", "value": "http://localhost:8000", "type": "default", "enabled": true },
+		{ "key": "token", "value": "", "type": "secret", "enabled": true },
+		{ "key": "livestream_id", "value": "1", "type": "default", "enabled": true },
+		{ "key": "event_id", "value": "1", "type": "default", "enabled": true },
+		{ "key": "user_id", "value": "1", "type": "default", "enabled": true }
+	],
+	"_postman_variable_scope": "environment"
+}

@@ -94,11 +94,12 @@ class Livestream extends Model
     }
 
     /**
-     * RTMP server URL for Agora push. Format: rtmp://push.agora.io/live/{channel}
+     * Default RTMP server URL for OBS (Agora RTLS Ingress).
      * Used when broadcast_type is rtmp and URL not set manually.
+     * Stream key is generated via Agora RTLS API (see AgoraRtlsService), not derived from channel.
      */
     public static function defaultRtmpUrlForChannel(string $channel): string
     {
-        return 'rtmp://push.agora.io/live/' . $channel;
+        return \App\Services\AgoraRtlsService::defaultRtmpServerUrl();
     }
 }

@@ -17,6 +17,9 @@
 @if(session('success'))
     <div class="mb-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">{{ session('success') }}</div>
 @endif
+@if(session('warning'))
+    <div class="mb-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm">{{ session('warning') }}</div>
+@endif
 @if(session('error'))
     <div class="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{{ session('error') }}</div>
 @endif

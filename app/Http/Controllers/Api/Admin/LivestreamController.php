@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreLivestreamRequest;
 use App\Http\Requests\UpdateLivestreamRequest;
 use App\Models\Livestream;
+use App\Services\AgoraRtlsService;
 use App\Traits\ApiResponseTrait;
 use App\Constants\ResponseCode;
 use Illuminate\Http\Request;
@@ -54,7 +55,11 @@ class LivestreamController extends Controller
                     $data['rtmp_url'] = Livestream::defaultRtmpUrlForChannel($channel);
                 }
                 if (empty($data['rtmp_stream_key'] ?? null)) {
-                    $data['rtmp_stream_key'] = $channel;
+                    try {
+                        $data['rtmp_stream_key'] = app(AgoraRtlsService::class)->createStreamKey($channel, '1', 0);
+                    } catch (\Throwable $e) {
+                        return $this->errorResponse(ResponseCode::BAD_REQUEST, 'Stream key creation failed: ' . $e->getMessage());
+                    }
                 }
             }
 
@@ -85,7 +90,11 @@ class LivestreamController extends Controller
                     $data['rtmp_url'] = Livestream::defaultRtmpUrlForChannel($channel);
                 }
                 if (empty($data['rtmp_stream_key'] ?? null)) {
-                    $data['rtmp_stream_key'] = $channel;
+                    try {
+                        $data['rtmp_stream_key'] = app(AgoraRtlsService::class)->createStreamKey($channel, (string) $livestream->id, 0);
+                    } catch (\Throwable $e) {
+                        return $this->errorResponse(ResponseCode::BAD_REQUEST, 'Stream key creation failed: ' . $e->getMessage());
+                    }
                 }
             }
             $livestream->update($data);

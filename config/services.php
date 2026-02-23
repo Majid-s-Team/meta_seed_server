@@ -36,6 +36,12 @@ return [
         'app_certificate' => trim((string) env('AGORA_APP_CERTIFICATE', '')),
         'webhook_secret' => trim((string) env('AGORA_WEBHOOK_SECRET', '')),
         'webhook_allowed_ips' => array_filter(array_map('trim', explode(',', env('AGORA_WEBHOOK_ALLOWED_IPS', '')))),
+        // RTLS Ingress (OBS): stream key API uses RESTful API credentials (not App Certificate)
+        'rtls_customer_id' => trim((string) env('AGORA_RTLS_CUSTOMER_ID', '')),
+        'rtls_customer_secret' => trim((string) env('AGORA_RTLS_CUSTOMER_SECRET', '')),
+        'rtls_api_base' => trim((string) env('AGORA_RTLS_API_BASE', 'https://api.sd-rtn.com')),
+        'rtls_region' => strtolower(trim((string) env('AGORA_RTLS_REGION', 'ap'))), // ap | cn | eu | na
+        'rtls_rtmp_url' => trim((string) env('AGORA_RTLS_RTMP_URL', 'rtmp://rtls-ingress-prod-ap.agoramdn.com/live')),
     ],
 
     'livestream' => [

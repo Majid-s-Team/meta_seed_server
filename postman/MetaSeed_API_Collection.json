@@ -1,0 +1,538 @@
+{
+	"info": {
+		"_postman_id": "meta-seed-api-collection",
+		"name": "MetaSeed API - Full Scenarios",
+		"description": "Complete API collection for MetaSeed: auth, profile, events, event bookings, categories, wallet, livestreams (user + admin), admin users/analytics, and Agora webhook. Use {{base_url}} and {{token}} from environment.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{ "key": "token", "value": "{{token}}", "type": "string" }
+		]
+	},
+	"variable": [
+		{ "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+		{ "key": "token", "value": "", "type": "string" },
+		{ "key": "livestream_id", "value": "1", "type": "string" },
+		{ "key": "event_id", "value": "1", "type": "string" },
+		{ "key": "user_id", "value": "1", "type": "string" }
+	],
+	"item": [
+		{
+			"name": "1 - Auth (no token)",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"contact\": \"+1234567890\"\n}"
+						},
+						"url": "{{base_url}}/api/register",
+						"description": "Register new user. Returns token and user. Save token to environment for subsequent requests."
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": ["var json = pm.response.json(); if (json.data && json.data.token) { pm.environment.set('token', json.data.token); }"],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": "{{base_url}}/api/login",
+						"description": "Login. Script saves token to env if response contains data.token."
+					}
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"email\": \"test@example.com\"\n}" },
+						"url": "{{base_url}}/api/forgot-password"
+					}
+				},
+				{
+					"name": "Verify OTP",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"email\": \"test@example.com\",\n  \"otp\": \"123456\"\n}" },
+						"url": "{{base_url}}/api/verify-otp"
+					}
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"test@example.com\",\n  \"otp\": \"123456\",\n  \"password\": \"newpassword123\",\n  \"password_confirmation\": \"newpassword123\"\n}"
+						},
+						"url": "{{base_url}}/api/reset-password"
+					}
+				}
+			]
+		},
+		{
+			"name": "2 - Profile (auth)",
+			"item": [
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": "{{base_url}}/api/profile"
+					}
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\",\n  \"contact\": \"+9876543210\"\n}"
+						},
+						"url": "{{base_url}}/api/profile-update"
+					}
+				},
+				{
+					"name": "Change Password",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"current_password\": \"password123\",\n  \"password\": \"newpass123\",\n  \"password_confirmation\": \"newpass123\"\n}"
+						},
+						"url": "{{base_url}}/api/change-password"
+					}
+				},
+				{
+					"name": "Toggle Active (user id)",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": "{{base_url}}/api/toggle-active/{{user_id}}"
+					}
+				},
+				{
+					"name": "Upload Media",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "" }] },
+						"url": "{{base_url}}/api/upload-media"
+					}
+				}
+			]
+		},
+		{
+			"name": "3 - Events",
+			"item": [
+				{
+					"name": "List Events",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": "{{base_url}}/api/events"
+					}
+				},
+				{
+					"name": "Show Event",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": "{{base_url}}/api/events/{{event_id}}"
+					}
+				},
+				{
+					"name": "Book Event",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": "{{base_url}}/api/events/{{event_id}}/book",
+						"description": "Books event (uses wallet coins). One booking per user per event."
+					}
+				}
+			]
+		},
+		{
+			"name": "4 - Event Bookings",
+			"item": [
+				{
+					"name": "List My Bookings",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": "{{base_url}}/api/events-booking"
+					}
+				},
+				{
+					"name": "Show Booking",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": "{{base_url}}/api/events-booking/1"
+					}
+				}
+			]
+		},
+		{
+			"name": "5 - Categories",
+			"item": [
+				{
+					"name": "List Categories",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": "{{base_url}}/api/categories"
+					}
+				}
+			]
+		},
+		{
+			"name": "6 - Static Pages",
+			"item": [
+				{
+					"name": "List Pages",
+					"request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/pages" }
+				},
+				{
+					"name": "Show Page by Type",
+					"request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/pages/about" }
+				},
+				{
+					"name": "Create Page",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"terms\",\n  \"title\": \"Terms of Service\",\n  \"content\": \"<p>Terms content here.</p>\"\n}"
+						},
+						"url": "{{base_url}}/api/pages"
+					}
+				},
+				{
+					"name": "Update Page",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"title\": \"Updated Title\",\n  \"content\": \"<p>Updated content.</p>\"\n}" },
+						"url": "{{base_url}}/api/pages/terms"
+					}
+				},
+				{
+					"name": "Delete Page",
+					"request": { "method": "DELETE", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/pages/terms" }
+				}
+			]
+		},
+		{
+			"name": "7 - Wallet",
+			"item": [
+				{
+					"name": "Get Wallet",
+					"request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/wallet" }
+				},
+				{
+					"name": "Purchase Coins",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"product_id\": \"coins_50\",\n  \"purchase_token\": \"sample_purchase_token\"\n}"
+						},
+						"url": "{{base_url}}/api/wallet/purchase",
+						"description": "product_id: coins_10, coins_50, coins_100"
+					}
+				},
+				{
+					"name": "List Transactions",
+					"request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/transactions" }
+				}
+			]
+		},
+		{
+			"name": "8 - Livestreams (user)",
+			"item": [
+				{
+					"name": "Test Live (no auth when LIVESTREAM_LOCAL_TEST=true)",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": "{{base_url}}/api/livestreams/test-live"
+					}
+				},
+				{
+					"name": "Test Credentials (livestream id)",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": "{{base_url}}/api/livestreams/{{livestream_id}}/test-credentials"
+					}
+				},
+				{
+					"name": "Upcoming Livestreams",
+					"request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/livestreams/upcoming" }
+				},
+				{
+					"name": "Live Now",
+					"request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/livestreams/live" }
+				},
+				{
+					"name": "Show Livestream",
+					"request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/livestreams/{{livestream_id}}" }
+				},
+				{
+					"name": "Book Livestream",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": "{{base_url}}/api/livestreams/{{livestream_id}}/book",
+						"description": "Paid livestreams debit wallet. Only when status=scheduled."
+					}
+				},
+				{
+					"name": "Join Livestream",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": "{{base_url}}/api/livestreams/{{livestream_id}}/join",
+						"description": "Returns Agora token when stream is live. Must be booked first (if paid)."
+					}
+				},
+				{
+					"name": "Viewer Joined",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": "{{base_url}}/api/livestreams/{{livestream_id}}/viewer-joined"
+					}
+				},
+				{
+					"name": "Viewer Left",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": "{{base_url}}/api/livestreams/{{livestream_id}}/viewer-left"
+					}
+				}
+			]
+		},
+		{
+			"name": "9 - Admin - Events",
+			"item": [
+				{
+					"name": "Create Event",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"New Event\",\n  \"description\": \"Description\",\n  \"date\": \"2025-12-01\",\n  \"time\": \"18:00\",\n  \"total_seats\": 100,\n  \"available_seats\": 100,\n  \"coins\": 10,\n  \"category_id\": 1,\n  \"is_online\": true\n}"
+						},
+						"url": "{{base_url}}/api/events"
+					}
+				},
+				{
+					"name": "Update Event",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Event\",\n  \"available_seats\": 95\n}"
+						},
+						"url": "{{base_url}}/api/events/{{event_id}}"
+					}
+				},
+				{
+					"name": "Change Event Status",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"status\": \"active\"\n}" },
+						"url": "{{base_url}}/api/events/{{event_id}}/status",
+						"description": "status: active, inactive, completed"
+					}
+				}
+			]
+		},
+		{
+			"name": "10 - Admin - Categories",
+			"item": [
+				{
+					"name": "Create Category",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"name\": \"New Category\"\n}" },
+						"url": "{{base_url}}/api/categories"
+					}
+				},
+				{
+					"name": "Update Category",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"name\": \"Updated Category\"\n}" },
+						"url": "{{base_url}}/api/categories/1"
+					}
+				},
+				{
+					"name": "Delete Category",
+					"request": { "method": "DELETE", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/categories/1" }
+				}
+			]
+		},
+		{
+			"name": "11 - Admin - Livestreams",
+			"item": [
+				{
+					"name": "List Admin Livestreams",
+					"request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/admin/livestreams" }
+				},
+				{
+					"name": "Create Livestream",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"My Livestream\",\n  \"description\": \"Description\",\n  \"scheduled_at\": \"2025-12-15 20:00:00\",\n  \"agora_channel\": \"channel_abc_123\",\n  \"broadcast_type\": \"agora_rtc\",\n  \"price\": 10,\n  \"max_participants\": 100\n}"
+						},
+						"url": "{{base_url}}/api/admin/livestreams",
+						"description": "broadcast_type: agora_rtc | rtmp. For rtmp can omit rtmp_url/rtmp_stream_key (defaults from channel)."
+					}
+				},
+				{
+					"name": "Update Livestream",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Title\",\n  \"scheduled_at\": \"2025-12-16 21:00:00\",\n  \"price\": 15\n}"
+						},
+						"url": "{{base_url}}/api/admin/livestreams/{{livestream_id}}",
+						"description": "Only scheduled streams can be edited."
+					}
+				},
+				{
+					"name": "Go Live",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": "{{base_url}}/api/admin/livestreams/{{livestream_id}}/go-live"
+					}
+				},
+				{
+					"name": "End Stream",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": "{{base_url}}/api/admin/livestreams/{{livestream_id}}/end-stream"
+					}
+				},
+				{
+					"name": "Livestream Participants",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": "{{base_url}}/api/admin/livestreams/{{livestream_id}}/participants"
+					}
+				}
+			]
+		},
+		{
+			"name": "12 - Admin - Users & Analytics",
+			"item": [
+				{
+					"name": "List Users",
+					"request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/admin/users" }
+				},
+				{
+					"name": "All Transactions",
+					"request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/admin/users/transactions" }
+				},
+				{
+					"name": "Toggle User Active",
+					"request": { "method": "PUT", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/admin/users/{{user_id}}/toggle" }
+				},
+				{
+					"name": "Analytics",
+					"request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/api/admin/analytics" }
+				},
+				{
+					"name": "Booking History",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": "{{base_url}}/api/admin/bookings",
+						"description": "Optional query: user_id, event_id"
+					}
+				}
+			]
+		},
+		{
+			"name": "13 - Agora Webhook (no auth)",
+			"item": [
+				{
+					"name": "Webhook - RTMP stream started",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"event\": \"live_stream_connected\",\n  \"sid\": \"wh_001\",\n  \"channel\": \"channel_abc_123\",\n  \"rtcInfo\": { \"channel\": \"channel_abc_123\" }\n}"
+						},
+						"url": "{{base_url}}/api/agora/webhook",
+						"description": "Agora sends this when RTMP feed connects. Channel must match a scheduled/live livestream. If AGORA_WEBHOOK_SECRET set, add X-Agora-Signature."
+					}
+				},
+				{
+					"name": "Webhook - RTMP stream stopped",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"event\": \"live_stream_disconnected\",\n  \"sid\": \"wh_002\",\n  \"channel\": \"channel_abc_123\",\n  \"rtcInfo\": { \"channel\": \"channel_abc_123\" }\n}"
+						},
+						"url": "{{base_url}}/api/agora/webhook"
+					}
+				}
+			]
+		}
+	]
+}
