@@ -42,6 +42,16 @@
     </div>
     <p id="channelDisplay" class="text-xs text-[var(--meta-text-muted)] mb-1 hidden">Channel: <span id="channelName"></span></p>
     <p id="statusLine" class="text-sm text-[var(--meta-text-secondary)] mb-2">Ready.</p>
+    <p id="remoteCountLine" class="hidden text-xs text-[var(--meta-text-muted)] mb-2">Remote users in channel: <span id="remoteCount">0</span> <span id="remoteCountHint" class="text-amber-400"></span></p>
+    <div id="waitingHint" class="hidden mb-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-200 text-sm">
+        <strong>No video yet?</strong> A host must be publishing to this channel:
+        <ol class="list-decimal list-inside mt-2 space-y-1 text-amber-200/90">
+            <li>Open <strong>Admin → Livestreams</strong> → open <strong>Broadcast</strong> for this stream.</li>
+            <li>Copy the <strong>RTMP Server URL</strong> and <strong>Stream key</strong>.</li>
+            <li>In <strong>OBS</strong>: Settings → Stream → Service: Custom → paste URL and key → <strong>Start Streaming</strong>.</li>
+        </ol>
+        <p class="mt-2 text-xs">Video will appear here as soon as OBS is streaming. Keep this page open.</p>
+    </div>
     <div id="playerWrap" class="rounded-xl overflow-hidden bg-black" style="height: 360px;">
         <div id="remoteVideo" class="w-full flex items-center justify-center text-[var(--meta-text-muted)]" style="height: 360px;">Video will appear here after join</div>
     </div>
@@ -77,6 +87,7 @@
     const LOCAL_TEST = @json(config('services.livestream.local_test', false));
     let token = localStorage.getItem('livestream_test_user_token') || '';
     let agoraClient = null;
+    let remoteCountInterval = null;
 
     const $ = (id) => document.getElementById(id);
     const setStatus = (msg, isError = false) => {
@@ -160,7 +171,8 @@
 
         try {
             if (agoraClient) { await agoraClient.leave(); agoraClient = null; }
-            agoraClient = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
+            // Use h264 to match typical OBS/RTMP output; vp8 can miss RTMP-injected streams
+            agoraClient = AgoraRTC.createClient({ mode: 'live', codec: 'h264' });
             let joined = false;
             try {
                 await agoraClient.join(app_id, channel, tokenToUse, joinUid);
@@ -178,8 +190,25 @@
             if (!joined) throw new Error('Join failed');
 
             await agoraClient.setClientRole('audience');
+
+            function updateRemoteCount() {
+                const el = $('remoteCountLine');
+                const numEl = $('remoteCount');
+                const hintEl = $('remoteCountHint');
+                if (!agoraClient || !el || !numEl) return;
+                const n = agoraClient.remoteUsers ? agoraClient.remoteUsers.length : 0;
+                numEl.textContent = n;
+                el.classList.remove('hidden');
+                if (hintEl) {
+                    hintEl.textContent = n === 0 ? '— Start OBS with the exact RTMP URL and Stream key from Admin → Broadcast for this stream.' : '';
+                }
+            }
+            agoraClient.on('user-joined', (user) => { console.log('[Viewer] user-joined', user.uid); updateRemoteCount(); });
+            agoraClient.on('user-left', (user) => { console.log('[Viewer] user-left', user.uid); updateRemoteCount(); });
             agoraClient.on('user-published', async (user, mediaType) => {
+                console.log('[Viewer] user-published', mediaType, 'uid', user.uid);
                 await agoraClient.subscribe(user, mediaType);
+                updateRemoteCount();
                 if (mediaType === 'video' && user.videoTrack) {
                     const container = $('remoteVideo');
                     if (!container) return;
@@ -191,20 +220,27 @@
                     await user.videoTrack.play(container, { fit: 'contain' });
                     setStatusLine('Playing.');
                     setStatus('Stream playing.');
+                    const wh = $('waitingHint'); if (wh) wh.classList.add('hidden');
+                    if (remoteCountInterval) { clearInterval(remoteCountInterval); remoteCountInterval = null; }
                 }
             });
-            agoraClient.on('user-unpublished', () => {
+            agoraClient.on('user-unpublished', (user, mediaType) => {
+                console.log('[Viewer] user-unpublished', mediaType, user.uid);
                 const c = $('remoteVideo');
                 c.innerHTML = '<span class="text-[var(--meta-text-muted)]">Stream ended.</span>';
                 c.className = 'w-full flex items-center justify-center text-[var(--meta-text-muted)]';
                 c.style.height = '360px';
                 c.style.display = 'flex';
+                updateRemoteCount();
             });
+            remoteCountInterval = setInterval(updateRemoteCount, 2000);
 
             $('joinBtn').disabled = true;
             $('leaveBtn').disabled = false;
             setStatusLine('Joined. Waiting for video…');
             setStatus('Joined. Waiting for host video…');
+            const wh = $('waitingHint'); if (wh) wh.classList.remove('hidden');
+            updateRemoteCount();
         } catch (err) {
             setStatusLine('Error');
             const msg = String(err.message || err);
@@ -217,11 +253,14 @@
 
     $('joinBtn').onclick = () => doJoin();
     $('leaveBtn').onclick = async () => {
+        if (remoteCountInterval) { clearInterval(remoteCountInterval); remoteCountInterval = null; }
         if (agoraClient) { await agoraClient.leave(); agoraClient = null; }
         showChannel('');
         const rv = $('remoteVideo');
         rv.innerHTML = 'Video will appear here after join';
         rv.style.display = 'flex';
+        const wh = $('waitingHint'); if (wh) wh.classList.add('hidden');
+        const rcl = $('remoteCountLine'); if (rcl) rcl.classList.add('hidden');
         $('joinBtn').disabled = false;
         $('leaveBtn').disabled = true;
         setStatusLine('Ready.');
