@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\EventBookingController;
 use App\Http\Controllers\Api\LivestreamController;
 use App\Http\Controllers\Api\Admin\LivestreamController as AdminLivestreamController;
 use App\Http\Controllers\Api\AgoraWebhookController;
+use App\Http\Controllers\Api\EventRecordingController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -80,6 +81,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('livestreams/{id}/join', [LivestreamController::class, 'join']);
     Route::post('livestreams/{id}/viewer-joined', [LivestreamController::class, 'viewerJoined']);
     Route::post('livestreams/{id}/viewer-left', [LivestreamController::class, 'viewerLeft']);
+
+    // Past event recordings (watch previous matches)
+    Route::get('recordings', [EventRecordingController::class, 'index']);
+    Route::get('recordings/{id}', [EventRecordingController::class, 'show']);
 
     Route::middleware('role:admin')->group(function () {
         // Events
