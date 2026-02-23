@@ -191,6 +191,42 @@
 
             await agoraClient.setClientRole('audience');
 
+            let videoPlaying = false;
+            let fallbackTried = false;
+            async function tryPlayRemoteVideo(user) {
+                if (videoPlaying || !user) return;
+                try {
+                    if (user.videoTrack) {
+                        const container = $('remoteVideo');
+                        if (!container) return;
+                        container.innerHTML = '';
+                        container.className = 'w-full';
+                        container.style.height = '360px';
+                        container.style.display = 'block';
+                        container.style.position = 'relative';
+                        await user.videoTrack.play(container, { fit: 'contain' });
+                        videoPlaying = true;
+                        setStatusLine('Playing.');
+                        setStatus('Stream playing.');
+                        const wh = $('waitingHint'); if (wh) wh.classList.add('hidden');
+                        if (remoteCountInterval) { clearInterval(remoteCountInterval); remoteCountInterval = null; }
+                    }
+                } catch (e) { console.warn('[Viewer] tryPlayRemoteVideo failed', e); }
+            }
+            async function fallbackSubscribeRemoteUsers() {
+                if (!agoraClient || videoPlaying || fallbackTried || !agoraClient.remoteUsers || agoraClient.remoteUsers.length === 0) return;
+                fallbackTried = true;
+                console.log('[Viewer] Fallback: subscribing to remote users (RTMP stream may not fire user-published for video)', agoraClient.remoteUsers.length);
+                for (const user of agoraClient.remoteUsers) {
+                    try {
+                        if (user.hasVideo && !user.videoTrack) await agoraClient.subscribe(user, 'video');
+                        if (user.hasAudio && !user.audioTrack) await agoraClient.subscribe(user, 'audio');
+                        await tryPlayRemoteVideo(user);
+                        if (videoPlaying) break;
+                    } catch (e) { console.warn('[Viewer] fallback subscribe failed for', user.uid, e); }
+                }
+            }
+
             function updateRemoteCount() {
                 const el = $('remoteCountLine');
                 const numEl = $('remoteCount');
@@ -202,6 +238,7 @@
                 if (hintEl) {
                     hintEl.textContent = n === 0 ? '— Start OBS with the exact RTMP URL and Stream key from Admin → Broadcast for this stream.' : '';
                 }
+                if (n >= 1 && !videoPlaying && !fallbackTried) setTimeout(fallbackSubscribeRemoteUsers, 800);
             }
             agoraClient.on('user-joined', (user) => { console.log('[Viewer] user-joined', user.uid); updateRemoteCount(); });
             agoraClient.on('user-left', (user) => { console.log('[Viewer] user-left', user.uid); updateRemoteCount(); });
@@ -209,23 +246,14 @@
                 console.log('[Viewer] user-published', mediaType, 'uid', user.uid);
                 await agoraClient.subscribe(user, mediaType);
                 updateRemoteCount();
-                if (mediaType === 'video' && user.videoTrack) {
-                    const container = $('remoteVideo');
-                    if (!container) return;
-                    container.innerHTML = '';
-                    container.className = 'w-full';
-                    container.style.height = '360px';
-                    container.style.display = 'block';
-                    container.style.position = 'relative';
-                    await user.videoTrack.play(container, { fit: 'contain' });
-                    setStatusLine('Playing.');
-                    setStatus('Stream playing.');
-                    const wh = $('waitingHint'); if (wh) wh.classList.add('hidden');
-                    if (remoteCountInterval) { clearInterval(remoteCountInterval); remoteCountInterval = null; }
+                if (mediaType === 'audio' && user.audioTrack) {
+                    if (user.videoTrack) await tryPlayRemoteVideo(user);
                 }
+                if (mediaType === 'video' && user.videoTrack) await tryPlayRemoteVideo(user);
             });
             agoraClient.on('user-unpublished', (user, mediaType) => {
                 console.log('[Viewer] user-unpublished', mediaType, user.uid);
+                if (mediaType === 'video') videoPlaying = false;
                 const c = $('remoteVideo');
                 c.innerHTML = '<span class="text-[var(--meta-text-muted)]">Stream ended.</span>';
                 c.className = 'w-full flex items-center justify-center text-[var(--meta-text-muted)]';
