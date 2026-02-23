@@ -258,12 +258,12 @@ class LivestreamController extends Controller
     /**
      * Local test only: list live streams without auth. Used when LIVESTREAM_LOCAL_TEST=true.
      */
-    public function testLive()
+    public function testLive(Request $request)
     {
         if (!config('services.livestream.local_test', false)) {
             return response()->json(['message' => 'Not available'], 404);
         }
-        return $this->live();
+        return $this->live($request);
     }
 
     /**
