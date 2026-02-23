@@ -52,8 +52,19 @@
         </ol>
         <p class="mt-2 text-xs">Video will appear here as soon as OBS is streaming. Keep this page open.</p>
     </div>
-    <div id="playerWrap" class="rounded-xl overflow-hidden bg-black" style="height: 360px;">
+    <div class="flex items-center gap-2 mb-2">
+        <button type="button" id="toggle360" class="test-btn-ghost text-sm hidden" disabled title="Switch to 360° view (for 360/VR streams from OBS)">
+            <span id="toggle360Label">360° View</span>
+        </button>
+        <span id="viewModeHint" class="text-xs text-[var(--meta-text-muted)] hidden">Drag to look around. Stream from OBS as equirectangular 360 for best results.</span>
+    </div>
+    <div id="playerWrap" class="rounded-xl overflow-hidden bg-black relative" style="height: 360px;">
         <div id="remoteVideo" class="w-full flex items-center justify-center text-[var(--meta-text-muted)]" style="height: 360px;">Video will appear here after join</div>
+        <div id="view360Wrap" class="absolute inset-0 rounded-xl overflow-hidden hidden" style="height: 360px;">
+            <a-scene id="scene360" embedded style="width:100%;height:100%;" vr-mode-ui="enabled: false">
+                <a-videosphere id="v360" src="#liveStreamVideo" rotation="0 -90 0" material="shader: flat; side: back;"></a-videosphere>
+            </a-scene>
+        </div>
     </div>
     <details class="mt-3">
         <summary class="text-xs text-[var(--meta-text-muted)] cursor-pointer hover:text-[var(--meta-text-secondary)]">Show API response</summary>
@@ -66,6 +77,8 @@
     #remoteVideo { position: relative; width: 100%; height: 360px !important; display: flex; align-items: center; justify-content: center; overflow: hidden; }
     #remoteVideo video { width: 100% !important; height: 100% !important; min-height: 360px; object-fit: contain; display: block; background: #000; }
     #remoteVideo > div { width: 100% !important; height: 100% !important; min-height: 360px; }
+    #view360Wrap a-scene { display: block !important; }
+    #view360Wrap.hidden { display: none !important; }
 </style>
 
 <div id="statusMessage" class="test-card hidden"></div>
@@ -81,6 +94,7 @@
 
 @push('scripts')
 <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.0.js"></script>
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 <script>
 (function() {
     const API_BASE = '{{ url("/api") }}';
@@ -205,6 +219,14 @@
                         container.style.display = 'block';
                         container.style.position = 'relative';
                         await user.videoTrack.play(container, { fit: 'contain' });
+                        const videoEl = container.querySelector('video');
+                        if (videoEl) {
+                            videoEl.id = 'liveStreamVideo';
+                            videoEl.setAttribute('playsinline', '');
+                            const t360 = $('toggle360');
+                            const lbl = $('toggle360Label');
+                            if (t360) { t360.classList.remove('hidden'); t360.disabled = false; }
+                        }
                         videoPlaying = true;
                         setStatusLine('Playing.');
                         setStatus('Stream playing.');
@@ -259,6 +281,8 @@
                 c.className = 'w-full flex items-center justify-center text-[var(--meta-text-muted)]';
                 c.style.height = '360px';
                 c.style.display = 'flex';
+                const t360 = $('toggle360'); if (t360) { t360.classList.add('hidden'); t360.disabled = true; }
+                const v360 = $('view360Wrap'); if (v360) v360.classList.add('hidden');
                 updateRemoteCount();
             });
             remoteCountInterval = setInterval(updateRemoteCount, 2000);
@@ -279,6 +303,33 @@
         }
     }
 
+    (function setup360Toggle() {
+        const toggle = $('toggle360');
+        const wrap360 = $('view360Wrap');
+        const remoteVideo = $('remoteVideo');
+        const hint = $('viewModeHint');
+        if (!toggle || !wrap360 || !remoteVideo) return;
+        let is360 = false;
+        toggle.onclick = () => {
+            is360 = !is360;
+            if (is360) {
+                wrap360.classList.remove('hidden');
+                remoteVideo.style.visibility = 'hidden';
+                remoteVideo.style.position = 'absolute';
+                remoteVideo.style.pointerEvents = 'none';
+                if (hint) hint.classList.remove('hidden');
+                const lblOn = $('toggle360Label'); if (lblOn) lblOn.textContent = 'Normal view';
+            } else {
+                wrap360.classList.add('hidden');
+                remoteVideo.style.visibility = '';
+                remoteVideo.style.position = '';
+                remoteVideo.style.pointerEvents = '';
+                if (hint) hint.classList.add('hidden');
+                const lblOff = $('toggle360Label'); if (lblOff) lblOff.textContent = '360° View';
+            }
+        };
+    })();
+
     $('joinBtn').onclick = () => doJoin();
     $('leaveBtn').onclick = async () => {
         if (remoteCountInterval) { clearInterval(remoteCountInterval); remoteCountInterval = null; }
@@ -287,6 +338,12 @@
         const rv = $('remoteVideo');
         rv.innerHTML = 'Video will appear here after join';
         rv.style.display = 'flex';
+        rv.style.visibility = '';
+        rv.style.position = '';
+        rv.style.pointerEvents = '';
+        const v360 = $('view360Wrap'); if (v360) v360.classList.add('hidden');
+        const t360 = $('toggle360'); if (t360) { t360.classList.add('hidden'); t360.disabled = true; }
+        const hint = $('viewModeHint'); if (hint) hint.classList.add('hidden');
         const wh = $('waitingHint'); if (wh) wh.classList.add('hidden');
         const rcl = $('remoteCountLine'); if (rcl) rcl.classList.add('hidden');
         $('joinBtn').disabled = false;
