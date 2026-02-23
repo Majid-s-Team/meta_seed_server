@@ -2,6 +2,10 @@
 
 @section('title', 'User Livestream Test')
 
+@section('head')
+<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+@endsection
+
 @section('content')
 <div>
     <h1 class="test-page-title">User Livestream Test</h1>
@@ -60,11 +64,7 @@
     </div>
     <div id="playerWrap" class="rounded-xl overflow-hidden bg-black relative" style="height: 360px;">
         <div id="remoteVideo" class="w-full flex items-center justify-center text-[var(--meta-text-muted)]" style="height: 360px;">Video will appear here after join</div>
-        <div id="view360Wrap" class="absolute inset-0 rounded-xl overflow-hidden hidden" style="height: 360px;">
-            <a-scene id="scene360" embedded style="width:100%;height:100%;" vr-mode-ui="enabled: false">
-                <a-videosphere id="v360" src="#liveStreamVideo" rotation="0 -90 0" material="shader: flat; side: back;"></a-videosphere>
-            </a-scene>
-        </div>
+        <div id="view360Wrap" class="absolute inset-0 rounded-xl overflow-hidden hidden" style="height: 360px;"></div>
     </div>
     <details class="mt-3">
         <summary class="text-xs text-[var(--meta-text-muted)] cursor-pointer hover:text-[var(--meta-text-secondary)]">Show API response</summary>
@@ -94,7 +94,6 @@
 
 @push('scripts')
 <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.0.js"></script>
-<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 <script>
 (function() {
     const API_BASE = '{{ url("/api") }}';
@@ -186,7 +185,7 @@
         try {
             if (agoraClient) { await agoraClient.leave(); agoraClient = null; }
             // Use h264 to match typical OBS/RTMP output; vp8 can miss RTMP-injected streams
-            agoraClient = AgoraRTC.createClient({ mode: 'live', codec: '' });
+            agoraClient = AgoraRTC.createClient({ mode: 'live', codec: 'h264' });
             let joined = false;
             try {
                 await agoraClient.join(app_id, channel, tokenToUse, joinUid);
@@ -282,7 +281,7 @@
                 c.style.height = '360px';
                 c.style.display = 'flex';
                 const t360 = $('toggle360'); if (t360) { t360.classList.add('hidden'); t360.disabled = true; }
-                const v360 = $('view360Wrap'); if (v360) v360.classList.add('hidden');
+                const v360 = $('view360Wrap'); if (v360) { v360.classList.add('hidden'); v360.innerHTML = ''; }
                 updateRemoteCount();
             });
             remoteCountInterval = setInterval(updateRemoteCount, 2000);
@@ -310,9 +309,14 @@
         const hint = $('viewModeHint');
         if (!toggle || !wrap360 || !remoteVideo) return;
         let is360 = false;
+        function create360Scene() {
+            if (wrap360.querySelector('a-scene') || !document.getElementById('liveStreamVideo')) return;
+            wrap360.innerHTML = '<a-scene id="scene360" embedded style="width:100%;height:100%;" vr-mode-ui="enabled: false"><a-videosphere id="v360" src="#liveStreamVideo" rotation="0 -90 0" material="shader: flat; side: back;"></a-videosphere></a-scene>';
+        }
         toggle.onclick = () => {
             is360 = !is360;
             if (is360) {
+                create360Scene();
                 wrap360.classList.remove('hidden');
                 remoteVideo.style.visibility = 'hidden';
                 remoteVideo.style.position = 'absolute';
@@ -341,7 +345,7 @@
         rv.style.visibility = '';
         rv.style.position = '';
         rv.style.pointerEvents = '';
-        const v360 = $('view360Wrap'); if (v360) v360.classList.add('hidden');
+        const v360 = $('view360Wrap'); if (v360) { v360.classList.add('hidden'); v360.innerHTML = ''; }
         const t360 = $('toggle360'); if (t360) { t360.classList.add('hidden'); t360.disabled = true; }
         const hint = $('viewModeHint'); if (hint) hint.classList.add('hidden');
         const wh = $('waitingHint'); if (wh) wh.classList.add('hidden');

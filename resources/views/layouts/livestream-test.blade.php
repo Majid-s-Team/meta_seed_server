@@ -75,6 +75,7 @@
         .test-page-desc { font-size: 0.875rem; color: var(--meta-text-secondary); margin-top: 4px; }
     </style>
     @stack('styles')
+    @yield('head')
 </head>
 <body class="p-4 md:p-6">
     <div class="max-w-3xl mx-auto space-y-6">
