@@ -168,8 +168,10 @@
         if (LOCAL_TEST && !tokenToUse) {
             console.log('LOCAL TEST MODE — no token from API (project may allow join without token)');
         }
+        // Show clearly whether we have a token (helps debug server config/cache)
+        const tokenStatus = tokenToUse ? 'Token: yes (using it)' : 'Token: no (join may fail if project requires token)';
         showChannel(channel);
-        setStatusLine('Connecting to Agora...');
+        setStatusLine(tokenStatus + ' — Connecting to Agora...');
         setStatus(tokenToUse
             ? 'Connecting with token (required for APP ID + Certificate projects)...'
             : (LOCAL_TEST ? 'Connecting without token (use APP ID only project or set AGORA_APP_CERTIFICATE in .env)...' : 'Connecting...'));

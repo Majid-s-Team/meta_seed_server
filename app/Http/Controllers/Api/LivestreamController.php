@@ -285,14 +285,22 @@ class LivestreamController extends Controller
             $agoraService = app(AgoraService::class);
             $data = $agoraService->getCredentialsForChannel($livestream->agora_channel, 1);
 
+            $payload = [
+                'app_id' => $data['app_id'],
+                'channel' => $data['channel'],
+                'token' => $data['token'],
+            ];
+            // Debug: show whether server sent a token (helps diagnose config/cache issues)
+            if (config('services.livestream.local_test', false)) {
+                $payload['_token_status'] = isset($data['token']) && $data['token'] !== '' && $data['token'] !== null
+                    ? 'present'
+                    : 'missing (set AGORA_APP_CERTIFICATE and run php artisan config:clear on server)';
+            }
+
             return response()->json([
                 'status_code' => ResponseCode::SUCCESS,
                 'message' => 'SUCCESS',
-                'data' => [
-                    'app_id' => $data['app_id'],
-                    'channel' => $data['channel'],
-                    'token' => $data['token'],
-                ],
+                'data' => $payload,
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return $this->errorResponse(ResponseCode::NOT_FOUND, 'Livestream not found');
