@@ -51,8 +51,8 @@ class AgoraWebhookController extends Controller
         }
 
         if (!$payload) {
-            Log::channel('single')->warning('Agora webhook: invalid or empty JSON', ['ip' => $request->ip()]);
-            return response('', 400);
+            Log::channel('single')->info('Agora webhook: empty or invalid JSON (health check?)', ['ip' => $request->ip()]);
+            return response('', 200);
         }
 
         $eventType = $this->normalizeEventType($payload);
@@ -60,8 +60,8 @@ class AgoraWebhookController extends Controller
         $sid = $payload['sid'] ?? $payload['sessionId'] ?? $payload['data']['sid'] ?? ('req_' . md5($rawBody . $request->ip()));
 
         if (!$channelName) {
-            Log::channel('single')->warning('Agora webhook: channel not found in payload', ['payload_keys' => array_keys($payload)]);
-            return response('', 400);
+            Log::channel('single')->info('Agora webhook: no channel in payload (health check or unknown event)', ['payload_keys' => array_keys($payload)]);
+            return response('', 200);
         }
 
         $dedupeKey = self::DEDUPE_CACHE_PREFIX . $sid . '_' . $eventType;
