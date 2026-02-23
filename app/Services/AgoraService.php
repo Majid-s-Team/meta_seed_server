@@ -42,15 +42,7 @@ class AgoraService
         // Expiry: current Unix timestamp + 2 hours (Agora expects seconds since 1/1/1970)
         $privilegeExpiredTs = time() + self::TOKEN_EXPIRY_SECONDS;
 
-        // Use integer uid in valid range (1 to 2^32-1); Laravel user id is usually within range
-        $uid = is_numeric($userId) ? (int) $userId : 0;
-        if ($uid < 1 || $uid > 4294967295) {
-            $uid = crc32((string) $userId);
-            $uid = ($uid < 0) ? $uid + 4294967296 : $uid;
-            if ($uid === 0) {
-                $uid = 1;
-            }
-        }
+        $uid = $this->normalizeUid($userId);
 
         $role = \TaylanUnutmaz\AgoraTokenBuilder\RtcTokenBuilder::RolePublisher;
 
@@ -77,16 +69,34 @@ class AgoraService
     }
 
     /**
+     * Normalize user id to Agora UID (1 to 2^32-1). Client must join with this same UID when using a token.
+     */
+    public function normalizeUid($userId): int
+    {
+        $uid = is_numeric($userId) ? (int) $userId : 0;
+        if ($uid < 1 || $uid > 4294967295) {
+            $uid = crc32((string) $userId);
+            $uid = ($uid < 0) ? $uid + 4294967296 : $uid;
+            if ($uid === 0) {
+                $uid = 1;
+            }
+        }
+        return $uid;
+    }
+
+    /**
      * Get credentials for local testing. When certificate is empty, token is null (Agora project must allow optional token).
+     * Returns uid so the client can join with the same UID the token was generated for (required for token auth).
      */
     public function getCredentialsForChannel(string $channelName, $userId): array
     {
         $appId = $this->getAppId();
         $cert = trim((string) config('services.agora.app_certificate', ''));
+        $uid = $this->normalizeUid($userId);
         $token = null;
         if ($cert !== '') {
             $token = $this->generateRtcToken($channelName, $userId);
         }
-        return ['app_id' => $appId, 'channel' => $channelName, 'token' => $token];
+        return ['app_id' => $appId, 'channel' => $channelName, 'token' => $token, 'uid' => $uid];
     }
 }

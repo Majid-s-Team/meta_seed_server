@@ -190,6 +190,7 @@ class LivestreamController extends Controller
             $agoraService = app(AgoraService::class);
             $token = $agoraService->generateRtcToken($livestream->agora_channel, $user->id);
             $appId = $agoraService->getAppId();
+            $uid = $agoraService->normalizeUid($user->id);
 
             return response()->json([
                 'status_code' => ResponseCode::SUCCESS,
@@ -198,6 +199,7 @@ class LivestreamController extends Controller
                     'app_id' => $appId,
                     'channel' => $livestream->agora_channel,
                     'token' => $token,
+                    'uid' => $uid,
                 ],
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -289,6 +291,7 @@ class LivestreamController extends Controller
                 'app_id' => $data['app_id'],
                 'channel' => $data['channel'],
                 'token' => $data['token'],
+                'uid' => $data['uid'],
             ];
             // Debug: show whether server sent a token (helps diagnose config/cache issues)
             if (config('services.livestream.local_test', false)) {

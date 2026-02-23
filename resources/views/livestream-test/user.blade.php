@@ -151,8 +151,10 @@
             return;
         }
 
-        const { app_id, channel, token: rtcToken } = data.data;
+        const { app_id, channel, token: rtcToken, uid: apiUid } = data.data;
         const tokenToUse = (rtcToken === null || rtcToken === undefined || rtcToken === '') ? null : rtcToken;
+        // When using a token, you must join with the same UID the token was generated for (else "invalid token, authorized failed").
+        const joinUid = (apiUid !== undefined && apiUid !== null && apiUid !== '') ? apiUid : null;
         showChannel(channel);
         setStatusLine(tokenToUse ? 'Connecting with token…' : 'Connecting…');
 
@@ -161,14 +163,14 @@
             agoraClient = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
             let joined = false;
             try {
-                await agoraClient.join(app_id, channel, tokenToUse, null);
+                await agoraClient.join(app_id, channel, tokenToUse, joinUid);
                 joined = true;
             } catch (joinErr) {
                 const jmsg = String(joinErr.message || joinErr);
                 const isTokenErr = /invalid token|authorized failed/i.test(jmsg) || jmsg.includes('dynamic use static key');
                 if (!joined && tokenToUse && isTokenErr) {
                     try {
-                        await agoraClient.join(app_id, channel, null, null);
+                        await agoraClient.join(app_id, channel, null, joinUid);
                         joined = true;
                     } catch (_) { throw joinErr; }
                 } else if (!joined) throw joinErr;
