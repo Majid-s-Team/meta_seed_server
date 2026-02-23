@@ -1,76 +1,80 @@
-@extends('layouts.test')
+@extends('layouts.livestream-test')
 
 @section('title', 'User Livestream Test')
 
 @section('content')
-<div class="space-y-6">
-    <h1 class="text-2xl font-bold text-gray-800">User Livestream Test</h1>
-    <p class="text-gray-600">List live streams, join with Agora token (test mode skips booking). Video plays below when you join.</p>
-
-    @if(config('services.livestream.local_test', false))
-    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
-        <strong>Local test mode</strong> — Running locally. Join without API token. Video shows when the publisher is live on the same stream. If you get “dynamic use static key”: in <a href="https://console.agora.io" target="_blank" rel="noopener" class="underline">Agora Console</a> create a <strong>new project</strong> with <strong>「APP ID」only</strong> (not APP ID + Token), then put that App ID in <code>.env</code>. Agora has no “Testing mode” toggle — it depends on project creation.
-    </div>
-    @endif
-
-    <div class="bg-white rounded-lg shadow p-4">
-        <label class="block text-sm font-medium text-gray-700 mb-2">API Token (Bearer)</label>
-        <div class="flex gap-2">
-            <input type="password" id="apiToken" placeholder="Paste token from POST /api/login" class="flex-1 border rounded px-3 py-2">
-            <button type="button" id="setToken" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Set Token</button>
-        </div>
-        <p class="text-xs text-gray-500 mt-1">Optional when local test mode is on. Join uses <code>?test=1</code> so booking is not required.</p>
-    </div>
-
-    <div class="bg-white rounded-lg shadow p-4">
-        <h2 class="font-semibold text-gray-800 mb-3">Live Streams</h2>
-        <button type="button" id="refreshLive" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 mb-3">Refresh List</button>
-        <div id="liveList" class="space-y-2 text-sm"></div>
-    </div>
-
-    <div class="bg-white rounded-lg shadow p-4">
-        <h2 class="font-semibold text-gray-800 mb-3">Join &amp; Play</h2>
-        <p class="text-sm text-gray-600 mb-2"><strong>Video tabhi aayegi jab publisher live ho:</strong> Pehle <a href="{{ route('livestream-test.publisher') }}" class="text-blue-600 underline">Publisher page</a> par jao → same stream ID daalo → Start Publishing. Phir yahin same stream ID se Join karo.</p>
-        <p class="text-sm text-gray-600 mb-2">Click Join on a live stream above, or enter ID and click Join to connect via Agora and play video below.</p>
-        <div class="flex gap-2 mb-2">
-            <input type="number" id="streamId" placeholder="Stream ID" class="border rounded px-3 py-2 w-24" min="1">
-            <button type="button" id="joinBtn" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Join Stream</button>
-            <button type="button" id="leaveBtn" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700" disabled>Leave</button>
-        </div>
-        <p id="channelDisplay" class="text-xs text-gray-500 mb-2 hidden">Channel: <span id="channelName"></span></p>
-        <p id="statusLine" class="text-sm text-gray-600 mb-2">Ready.</p>
-        <div id="playerWrap" class="bg-black rounded overflow-hidden" style="height: 360px;">
-            <div id="remoteVideo" class="remote-video-container w-full text-gray-400" style="height: 360px;">Video will appear here after Join</div>
-        </div>
-        <style>
-            #playerWrap { height: 360px !important; }
-            .remote-video-container { position: relative; width: 100%; height: 360px !important; display: block; overflow: hidden; }
-            .remote-video-container video { width: 100% !important; height: 100% !important; min-height: 360px; object-fit: contain; display: block; background: #000; }
-            .remote-video-container > div { width: 100% !important; height: 100% !important; min-height: 360px; }
-        </style>
-        <pre id="joinResult" class="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-h-24 hidden"></pre>
-    </div>
-
-    <div class="flex gap-2 text-sm">
-        <a href="{{ route('livestream-test.admin') }}" class="text-blue-600 hover:underline">Admin test</a>
-        <span class="text-gray-400">|</span>
-        <a href="{{ route('livestream-test.publisher') }}" class="text-blue-600 hover:underline">Publisher test (camera/mic)</a>
-    </div>
-
-    <div id="statusMessage" class="p-3 rounded hidden"></div>
+<div>
+    <h1 class="test-page-title">User Livestream Test</h1>
+    <p class="test-page-desc">Same flow as the app: list live streams, get credentials from API, join via Agora. Video appears when a host is publishing (e.g. OBS via Admin → Broadcast).</p>
 </div>
 
+@if(config('services.livestream.local_test', false))
+<div class="test-card border-amber-500/30 bg-amber-500/5">
+    <p class="text-sm text-amber-200"><strong>Local test</strong> — No API token needed. Server uses <code class="bg-black/30 px-1 rounded">test-live</code> and <code class="bg-black/30 px-1 rounded">test-credentials</code>. Ensure <code class="bg-black/30 px-1 rounded">AGORA_APP_CERTIFICATE</code> is set so a token is returned.</p>
+</div>
+@endif
+
+{{-- API Token (for app-like flow when not in local test) --}}
+<div class="test-card">
+    <label class="block text-sm font-medium text-[var(--meta-text-secondary)] mb-2">API Token (Bearer)</label>
+    <div class="flex gap-2">
+        <input type="password" id="apiToken" placeholder="Optional: paste token from POST /api/login" class="test-input flex-1">
+        <button type="button" id="setToken" class="test-btn-ghost shrink-0">Set Token</button>
+    </div>
+    <p class="text-xs text-[var(--meta-text-muted)] mt-1">With token: uses <code>GET /livestreams/live</code> and <code>POST /livestreams/{id}/join?test=1</code> (same as app, booking skipped).</p>
+</div>
+
+{{-- Live streams list --}}
+<div class="test-card">
+    <h2 class="text-lg font-semibold text-white mb-3">Live Streams</h2>
+    <button type="button" id="refreshLive" class="test-btn-ghost mb-3">Refresh list</button>
+    <div id="liveList" class="space-y-2 text-sm text-[var(--meta-text-secondary)]"></div>
+</div>
+
+{{-- Join & play --}}
+<div class="test-card">
+    <h2 class="text-lg font-semibold text-white mb-3">Join & play</h2>
+    <p class="text-sm text-[var(--meta-text-secondary)] mb-3">Pick a stream above or enter stream ID. Set stream to Live in Admin → Livestreams → Broadcast, then start OBS with the shown RTMP URL and stream key.</p>
+    <div class="flex flex-wrap gap-2 items-center mb-3">
+        <input type="number" id="streamId" placeholder="Stream ID" class="test-input w-28" min="1">
+        <button type="button" id="joinBtn" class="test-btn-danger">Join stream</button>
+        <button type="button" id="leaveBtn" class="test-btn-ghost" disabled>Leave</button>
+    </div>
+    <p id="channelDisplay" class="text-xs text-[var(--meta-text-muted)] mb-1 hidden">Channel: <span id="channelName"></span></p>
+    <p id="statusLine" class="text-sm text-[var(--meta-text-secondary)] mb-2">Ready.</p>
+    <div id="playerWrap" class="rounded-xl overflow-hidden bg-black" style="height: 360px;">
+        <div id="remoteVideo" class="w-full flex items-center justify-center text-[var(--meta-text-muted)]" style="height: 360px;">Video will appear here after join</div>
+    </div>
+    <details class="mt-3">
+        <summary class="text-xs text-[var(--meta-text-muted)] cursor-pointer hover:text-[var(--meta-text-secondary)]">Show API response</summary>
+        <pre id="joinResult" class="mt-2 p-3 rounded-lg bg-black/40 text-xs overflow-auto max-h-32 text-[var(--meta-text-secondary)]"></pre>
+    </details>
+</div>
+
+<style>
+    #playerWrap { height: 360px !important; }
+    #remoteVideo { position: relative; width: 100%; height: 360px !important; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    #remoteVideo video { width: 100% !important; height: 100% !important; min-height: 360px; object-fit: contain; display: block; background: #000; }
+    #remoteVideo > div { width: 100% !important; height: 100% !important; min-height: 360px; }
+</style>
+
+<div id="statusMessage" class="test-card hidden"></div>
+
+<div class="flex gap-3 text-sm">
+    <a href="{{ route('admin.login') }}" class="text-[var(--meta-accent-end)] hover:underline">Admin panel</a>
+    <span class="text-[var(--meta-text-muted)]">|</span>
+    <a href="{{ route('livestream-test.admin') }}" class="text-[var(--meta-accent-end)] hover:underline">Admin test page</a>
+    <span class="text-[var(--meta-text-muted)]">|</span>
+    <a href="{{ route('livestream-test.publisher') }}" class="text-[var(--meta-accent-end)] hover:underline">Publisher test</a>
+</div>
+@endsection
+
 @push('scripts')
-{{-- Agora Web SDK 4.x: use official CDN or npm build --}}
 <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.0.js"></script>
 <script>
 (function() {
     const API_BASE = '{{ url("/api") }}';
     const LOCAL_TEST = @json(config('services.livestream.local_test', false));
-    if (LOCAL_TEST) {
-        console.log('LOCAL TEST MODE ACTIVE');
-        console.log('LOCAL TEST MODE — skipping token validation');
-    }
     let token = localStorage.getItem('livestream_test_user_token') || '';
     let agoraClient = null;
 
@@ -78,13 +82,10 @@
     const setStatus = (msg, isError = false) => {
         const el = $('statusMessage');
         el.textContent = msg;
-        el.className = 'p-3 rounded ' + (isError ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800');
+        el.className = 'test-card ' + (isError ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300');
         el.classList.remove('hidden');
     };
-    const setStatusLine = (msg) => {
-        const el = $('statusLine');
-        if (el) el.textContent = msg;
-    };
+    const setStatusLine = (msg) => { const el = $('statusLine'); if (el) el.textContent = msg; };
     const showChannel = (name) => {
         const wrap = $('channelDisplay');
         const span = $('channelName');
@@ -94,27 +95,16 @@
     $('apiToken').value = token;
     $('setToken').onclick = () => {
         token = $('apiToken').value.trim();
-        if (token) {
-            localStorage.setItem('livestream_test_user_token', token);
-            setStatus('Token saved.');
-        }
+        if (token) { localStorage.setItem('livestream_test_user_token', token); setStatus('Token saved.'); }
     };
 
-    const api = (path, options = {}) => {
-        const url = API_BASE + path;
-        const headers = { 'Accept': 'application/json', 'Content-Type': 'application/json', ...options.headers };
-        if (token) headers['Authorization'] = 'Bearer ' + token;
-        return fetch(url, { ...options, headers });
-    };
-
+    // Same as app: with auth use POST join?test=1; without auth (local test) use GET test-credentials
     async function getCredentials(streamId) {
         if (LOCAL_TEST) {
             const res = await fetch(API_BASE + '/livestreams/' + streamId + '/test-credentials');
             return await res.json();
         }
-        if (!token) {
-            return { status_code: 401, message: 'Set API token first (or enable local test mode).', data: null };
-        }
+        if (!token) return { status_code: 401, message: 'Set API token or enable local test on server.', data: null };
         const res = await fetch(API_BASE + '/livestreams/' + streamId + '/join?test=1', {
             method: 'POST',
             headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }
@@ -129,14 +119,14 @@
         const res = await fetch(url, { headers });
         const data = await res.json();
         const list = $('liveList');
-        if (!data.data || !data.data.length) {
-            list.innerHTML = '<p class="text-gray-500">No live streams. Use Admin page to set a stream LIVE.</p>';
+        if (!data.data || !Array.isArray(data.data) || !data.data.length) {
+            list.innerHTML = '<p class="text-[var(--meta-text-muted)]">No live streams. In Admin set a stream to Live and start OBS.</p>';
             return;
         }
         list.innerHTML = data.data.map(s => `
-            <div class="border rounded p-2 flex justify-between items-center">
-                <span><strong>#${s.id}</strong> ${s.title} — ${s.agora_channel}</span>
-                <button type="button" class="join-stream bg-red-600 text-white px-3 py-1 rounded text-xs" data-id="${s.id}">Join</button>
+            <div class="flex justify-between items-center py-2 border-b border-[var(--meta-border)] last:border-0">
+                <span><strong class="text-white">#${s.id}</strong> ${s.title} — <span class="text-[var(--meta-text-muted)] font-mono text-xs">${s.agora_channel}</span></span>
+                <button type="button" class="join-stream test-btn-danger text-sm py-1.5 px-3" data-id="${s.id}">Join</button>
             </div>
         `).join('');
         list.querySelectorAll('.join-stream').forEach(btn => {
@@ -149,12 +139,11 @@
     async function doJoin(livestreamId) {
         const id = livestreamId || $('streamId').value.trim();
         if (!id) { setStatus('Enter stream ID or pick from list.', true); return; }
-        if (!LOCAL_TEST && !token) { setStatus('Set API token first (or enable local test mode).', true); return; }
+        if (!LOCAL_TEST && !token) { setStatus('Set API token or enable local test.', true); return; }
 
-        setStatusLine('Getting credentials...');
+        setStatusLine('Getting credentials…');
         const data = await getCredentials(id);
         $('joinResult').textContent = JSON.stringify(data, null, 2);
-        $('joinResult').classList.remove('hidden');
 
         if (data.status_code !== 200 || !data.data || !data.data.app_id) {
             setStatusLine('Error');
@@ -163,25 +152,12 @@
         }
 
         const { app_id, channel, token: rtcToken } = data.data;
-        // Use token when API provides it (required when Agora project uses APP ID + Certificate).
         const tokenToUse = (rtcToken === null || rtcToken === undefined || rtcToken === '') ? null : rtcToken;
-        if (LOCAL_TEST && !tokenToUse) {
-            console.log('LOCAL TEST MODE — no token from API (project may allow join without token)');
-        }
-        // Show clearly whether we have a token (helps debug server config/cache)
-        const tokenStatus = tokenToUse ? 'Token: yes (using it)' : 'Token: no (join may fail if project requires token)';
         showChannel(channel);
-        setStatusLine(tokenStatus + ' — Connecting to Agora...');
-        setStatus(tokenToUse
-            ? 'Connecting with token (required for APP ID + Certificate projects)...'
-            : (LOCAL_TEST ? 'Connecting without token (use APP ID only project or set AGORA_APP_CERTIFICATE in .env)...' : 'Connecting...'));
+        setStatusLine(tokenToUse ? 'Connecting with token…' : 'Connecting…');
 
         try {
-            if (agoraClient) {
-                await agoraClient.leave();
-                agoraClient = null;
-            }
-
+            if (agoraClient) { await agoraClient.leave(); agoraClient = null; }
             agoraClient = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
             let joined = false;
             try {
@@ -189,85 +165,61 @@
                 joined = true;
             } catch (joinErr) {
                 const jmsg = String(joinErr.message || joinErr);
-                const isTokenError = jmsg.toLowerCase().indexOf('invalid token') !== -1 || jmsg.indexOf('authorized failed') !== -1;
-                if (!joined && tokenToUse !== null && (isTokenError || jmsg.indexOf('dynamic use static key') !== -1)) {
-                    console.warn('[Viewer] Join failed with token error — retrying without token (for token-optional projects)');
+                const isTokenErr = /invalid token|authorized failed/i.test(jmsg) || jmsg.includes('dynamic use static key');
+                if (!joined && tokenToUse && isTokenErr) {
                     try {
                         await agoraClient.join(app_id, channel, null, null);
                         joined = true;
-                    } catch (_) {
-                        throw joinErr;
-                    }
-                } else if (!joined) {
-                    throw joinErr;
-                }
+                    } catch (_) { throw joinErr; }
+                } else if (!joined) throw joinErr;
             }
-
             if (!joined) throw new Error('Join failed');
 
             await agoraClient.setClientRole('audience');
-            console.log('[Viewer] Role set to audience');
-
             agoraClient.on('user-published', async (user, mediaType) => {
-                console.log('[Viewer] user-published', mediaType, user.uid);
                 await agoraClient.subscribe(user, mediaType);
                 if (mediaType === 'video' && user.videoTrack) {
-                    const container = document.getElementById('remoteVideo');
-                    if (!container) { console.warn('[Viewer] remoteVideo container not found'); return; }
+                    const container = $('remoteVideo');
+                    if (!container) return;
                     container.innerHTML = '';
-                    container.className = 'remote-video-container w-full';
+                    container.className = 'w-full';
                     container.style.height = '360px';
                     container.style.display = 'block';
+                    container.style.position = 'relative';
                     await user.videoTrack.play(container, { fit: 'contain' });
-                    console.log('[Viewer] Remote video playing');
-                    setStatusLine(LOCAL_TEST ? 'Playing stream (local test).' : 'Playing stream.');
-                    setStatus(LOCAL_TEST ? 'Playing stream (local test).' : 'Playing stream.');
+                    setStatusLine('Playing.');
+                    setStatus('Stream playing.');
                 }
             });
             agoraClient.on('user-unpublished', () => {
-                const container = $('remoteVideo');
-                container.innerHTML = '<span class="text-gray-400">Stream ended or left.</span>';
-                container.className = 'remote-video-container w-full';
-                container.style.height = '360px';
+                const c = $('remoteVideo');
+                c.innerHTML = '<span class="text-[var(--meta-text-muted)]">Stream ended.</span>';
+                c.className = 'w-full flex items-center justify-center text-[var(--meta-text-muted)]';
+                c.style.height = '360px';
+                c.style.display = 'flex';
             });
 
             $('joinBtn').disabled = true;
             $('leaveBtn').disabled = false;
-            setStatusLine(LOCAL_TEST ? 'Joined (local test). Waiting for host video...' : 'Joined. Waiting for host video...');
-            setStatus(LOCAL_TEST ? 'LOCAL TEST MODE ACTIVE. Joined without token. Waiting for host video...' : 'Joined. Waiting for host video...');
+            setStatusLine('Joined. Waiting for video…');
+            setStatus('Joined. Waiting for host video…');
         } catch (err) {
             setStatusLine('Error');
             const msg = String(err.message || err);
-            const isTokenError = msg.toLowerCase().indexOf('invalid token') !== -1 || msg.indexOf('authorized failed') !== -1;
-            const isGatewayError = msg.indexOf('CAN_NOT_GET_GATEWAY_SERVER') !== -1 || msg.indexOf('dynamic use static key') !== -1;
-            if (LOCAL_TEST && (isTokenError || isGatewayError)) {
-                setStatus('LOCAL TEST MODE. Could not connect to Agora. Set AGORA_APP_CERTIFICATE in .env on the server so the API returns a token (required for most projects). Or in Agora Console create a new project with APP ID only (no token) and use that App ID.', false);
-                setStatusLine('Local test — Agora unreachable');
-                console.warn('[Viewer] Agora join failed in local test:', err);
-            } else if (LOCAL_TEST) {
-                setStatus('LOCAL TEST MODE ACTIVE. Join failed. Ensure publisher is on the same channel.', false);
-                setStatusLine('Local test — join failed');
-                console.warn('[Viewer] Agora join failed in local test:', err);
-            } else {
-                const friendly = isTokenError ? 'Invalid token. Check AGORA_APP_ID and AGORA_APP_CERTIFICATE in .env.' : (isGatewayError ? 'Cannot reach Agora (check network; set project to Testing mode in Console).' : msg);
-                setStatus('Agora error: ' + friendly, true);
-                console.error(err);
-            }
+            const code = err.code !== undefined ? String(err.code) : '';
+            const full = code ? `[${code}] ${msg}` : msg;
+            setStatus('Could not connect: ' + full, true);
+            console.warn('Agora join failed:', err);
         }
     }
 
     $('joinBtn').onclick = () => doJoin();
-
     $('leaveBtn').onclick = async () => {
-        if (agoraClient) {
-            await agoraClient.leave();
-            agoraClient = null;
-        }
+        if (agoraClient) { await agoraClient.leave(); agoraClient = null; }
         showChannel('');
         const rv = $('remoteVideo');
-        rv.innerHTML = 'Video will appear here after Join';
-        rv.className = 'remote-video-container w-full';
-        rv.style.height = '360px';
+        rv.innerHTML = 'Video will appear here after join';
+        rv.style.display = 'flex';
         $('joinBtn').disabled = false;
         $('leaveBtn').disabled = true;
         setStatusLine('Ready.');
@@ -278,4 +230,3 @@
 })();
 </script>
 @endpush
-@endsection
