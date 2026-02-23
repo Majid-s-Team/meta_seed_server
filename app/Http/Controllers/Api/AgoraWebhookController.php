@@ -35,7 +35,9 @@ class AgoraWebhookController extends Controller
     ) {}
 
     /**
-     * POST /api/agora/webhook — Agora callback for RTMP stream start/stop.
+     * POST /api/agora/webhook — Agora Media Gateway callback for RTMP stream lifecycle.
+     * Agora sends: { "noticeId", "productId", "eventType": 1|2, "notifyMs", "sid", "payload": { "rtcInfo": { "channel", "uid" }, "streamKey", ... } }.
+     * eventType 1 = live_stream_connected, 2 = live_stream_disconnected.
      */
     public function __invoke(Request $request): Response
     {
@@ -47,33 +49,46 @@ class AgoraWebhookController extends Controller
                 'ip' => $request->ip(),
                 'reason' => 'signature_or_ip_failed',
             ]);
-            return response('', 401);
+            return response()->json([], 401);
         }
 
         if (!$payload) {
             Log::channel('single')->info('Agora webhook: empty or invalid JSON (health check?)', ['ip' => $request->ip()]);
-            return response('', 200);
+            return response()->json(['status' => 'ok'], 200);
         }
 
-        $eventType = $this->normalizeEventType($payload);
-        $channelName = $this->extractChannelName($payload);
-        $sid = $payload['sid'] ?? $payload['sessionId'] ?? $payload['data']['sid'] ?? ('req_' . md5($rawBody . $request->ip()));
+        // Agora wraps the event payload in a top-level "payload" key; use it for channel/streamKey
+        $body = $payload['payload'] ?? $payload;
+        $eventType = $this->normalizeEventType($payload, $body);
+        $channelName = $this->extractChannelName($body);
+        $streamKeyFromPayload = $body['streamKey'] ?? null;
+        $sid = $payload['sid'] ?? $body['sid'] ?? $payload['sessionId'] ?? ('req_' . md5($rawBody . $request->ip()));
 
-        if (!$channelName) {
-            Log::channel('single')->info('Agora webhook: no channel in payload (health check or unknown event)', ['payload_keys' => array_keys($payload)]);
-            return response('', 200);
+        Log::channel('single')->info('Agora webhook: received', [
+            'eventType' => $eventType,
+            'channel' => $channelName,
+            'streamKey_present' => !empty($streamKeyFromPayload),
+            'sid' => $sid,
+        ]);
+
+        if (!$channelName && !$streamKeyFromPayload) {
+            Log::channel('single')->info('Agora webhook: no channel or streamKey in payload', ['payload_keys' => array_keys($payload), 'body_keys' => array_keys($body)]);
+            return response()->json(['status' => 'ok'], 200);
         }
 
-        $dedupeKey = self::DEDUPE_CACHE_PREFIX . $sid . '_' . $eventType;
+        $dedupeKey = self::DEDUPE_CACHE_PREFIX . $sid . '_' . ($eventType ?? 'unknown');
         if (Cache::has($dedupeKey)) {
             Log::channel('single')->debug('Agora webhook: duplicate event ignored', ['sid' => $sid, 'event' => $eventType]);
-            return response('', 200);
+            return response()->json(['status' => 'ok'], 200);
         }
 
-        $livestream = Livestream::where('agora_channel', $channelName)->whereIn('status', ['scheduled', 'live'])->first();
+        $livestream = $this->findLivestream($channelName, $streamKeyFromPayload);
         if (!$livestream) {
-            Log::channel('single')->info('Agora webhook: no livestream for channel', ['channel' => $channelName]);
-            return response('', 200);
+            Log::channel('single')->info('Agora webhook: no livestream for channel/streamKey', [
+                'channel' => $channelName,
+                'stream_key_prefix' => $streamKeyFromPayload ? substr($streamKeyFromPayload, 0, 8) . '...' : null,
+            ]);
+            return response()->json(['status' => 'ok'], 200);
         }
 
         $metadata = [
@@ -91,7 +106,22 @@ class AgoraWebhookController extends Controller
             $this->workflow->reportRtmpFeedStopped($livestream, $metadata);
         }
 
-        return response('', 200);
+        return response()->json(['status' => 'ok'], 200);
+    }
+
+    private function findLivestream(?string $channelName, ?string $streamKey): ?Livestream
+    {
+        $query = Livestream::whereIn('status', ['scheduled', 'live']);
+        if ($channelName !== null && $channelName !== '') {
+            $byChannel = (clone $query)->where('agora_channel', $channelName)->first();
+            if ($byChannel) {
+                return $byChannel;
+            }
+        }
+        if ($streamKey !== null && $streamKey !== '') {
+            return $query->where('rtmp_stream_key', $streamKey)->first();
+        }
+        return null;
     }
 
     private function parsePayload(string $raw): ?array
@@ -100,37 +130,43 @@ class AgoraWebhookController extends Controller
         return is_array($decoded) ? $decoded : null;
     }
 
-    private function normalizeEventType(array $payload): ?string
+    private function normalizeEventType(array $payload, array $body): ?string
     {
-        $event = $payload['event'] ?? $payload['eventType'] ?? $payload['event_type'] ?? $payload['data']['event'] ?? null;
-        if (!$event) {
-            return null;
-        }
-        $e = strtolower((string) $event);
-        if (in_array($e, ['live_stream_connected', 'rtmp_stream_started', 'stream_started', 'feed_detected'], true)) {
-            return 'feed_detected';
-        }
-        if (in_array($e, ['live_stream_disconnected', 'rtmp_stream_stopped', 'stream_stopped', 'feed_stopped'], true)) {
-            return 'feed_stopped';
+        $eventType = $payload['eventType'] ?? $payload['event'] ?? $body['eventType'] ?? $body['event'] ?? $payload['event_type'] ?? $body['event_type'] ?? null;
+        if ($eventType !== null) {
+            if (is_numeric($eventType)) {
+                if ((int) $eventType === 1) {
+                    return 'feed_detected';
+                }
+                if ((int) $eventType === 2) {
+                    return 'feed_stopped';
+                }
+            }
+            $e = strtolower((string) $eventType);
+            if (in_array($e, ['live_stream_connected', 'rtmp_stream_started', 'stream_started', 'feed_detected'], true)) {
+                return 'feed_detected';
+            }
+            if (in_array($e, ['live_stream_disconnected', 'rtmp_stream_stopped', 'stream_stopped', 'feed_stopped'], true)) {
+                return 'feed_stopped';
+            }
         }
         return null;
     }
 
-    private function extractChannelName(array $payload): ?string
+    private function extractChannelName(array $body): ?string
     {
         $candidates = [
-            $payload['rtcInfo']['channel'] ?? null,
-            $payload['channel'] ?? null,
-            $payload['data']['rtcInfo']['channel'] ?? null,
-            $payload['data']['channel'] ?? null,
+            $body['rtcInfo']['channel'] ?? null,
+            $body['channel'] ?? null,
+            $body['channelName'] ?? null,
         ];
         foreach ($candidates as $c) {
             if ($c !== null && $c !== '') {
                 return (string) $c;
             }
         }
-        if (isset($payload['streamKey']) && is_string($payload['streamKey']) && $payload['streamKey'] !== '') {
-            return $payload['streamKey'];
+        if (isset($body['streamKey']) && is_string($body['streamKey']) && $body['streamKey'] !== '') {
+            return $body['streamKey'];
         }
         return null;
     }
@@ -147,7 +183,11 @@ class AgoraWebhookController extends Controller
             return true;
         }
 
-        $signature = $request->header('X-Agora-Signature') ?? $request->header('x-agora-signature') ?? '';
+        $signature = $request->header('X-Agora-Signature')
+            ?? $request->header('x-agora-signature')
+            ?? $request->header('Agora-Signature')
+            ?? $request->header('Agora-Signature-V2')
+            ?? '';
         if ($signature === '') {
             return false;
         }

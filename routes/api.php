@@ -29,7 +29,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 // Agora webhook: RTMP stream start/stop (no auth; validate signature/IP in controller)
-Route::get('agora/webhook', fn () => response('', 200))->name('agora.webhook.health'); // health check
+Route::get('agora/webhook', fn () => response()->json(['status' => 'ok'], 200))->name('agora.webhook.health'); // health check
 Route::post('agora/webhook', AgoraWebhookController::class)->name('agora.webhook');
 
 // Local livestream testing: no auth when LIVESTREAM_LOCAL_TEST=true (returns 404 when disabled)
