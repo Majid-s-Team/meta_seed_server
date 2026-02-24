@@ -10,55 +10,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        :root {
-            --meta-bg: #0B0F1A;
-            --meta-card: #141A2E;
-            --meta-border: rgba(255,255,255,0.06);
-            --meta-accent-start: #6C5CE7;
-            --meta-accent-end: #8E7CFF;
-            --meta-text: #FFFFFF;
-            --meta-text-secondary: #9CA3AF;
-            --meta-text-muted: #6B7280;
-        }
-        body { font-family: 'Inter', sans-serif; background: var(--meta-bg); color: var(--meta-text); }
-        .admin-input {
-            width: 100%;
-            padding: 12px 16px;
-            border-radius: 12px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid var(--meta-border);
-            color: var(--meta-text);
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        .admin-input:focus {
-            outline: none;
-            border-color: var(--meta-accent-start);
-            box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
-        }
-        .admin-card {
-            background: var(--meta-card);
-            border: 1px solid var(--meta-border);
-            border-radius: 16px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.2);
-        }
-        .admin-btn-primary {
-            width: 100%;
-            padding: 12px 20px;
-            border-radius: 12px;
-            font-weight: 600;
-            background: linear-gradient(135deg, var(--meta-accent-start) 0%, var(--meta-accent-end) 100%);
-            color: #fff;
-            box-shadow: 0 4px 20px rgba(108, 92, 231, 0.35);
-            transition: all 0.2s ease;
-        }
-        .admin-btn-primary:hover {
-            box-shadow: 0 6px 28px rgba(108, 92, 231, 0.45);
-            transform: translateY(-1px);
-        }
-    </style>
+    @vite(['resources/css/admin-modern.css'])
+    <style>@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } } .animate-fade-in { animation: fadeIn 0.4s ease forwards; }</style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="min-h-screen flex items-center justify-center p-4 surface-main">
     <div class="w-full max-w-md animate-fade-in" style="animation: fadeIn 0.4s ease;">
         <div class="admin-card p-8">
             <h1 class="text-2xl font-bold text-white tracking-tight">MetaSeat Admin</h1>
@@ -85,14 +40,13 @@
                     <input type="checkbox" name="remember" id="remember" class="rounded border-white/20 bg-white/5 text-[var(--meta-accent-start)] focus:ring-[var(--meta-accent-start)]">
                     <label for="remember" class="text-sm text-[var(--meta-text-secondary)]">Remember me</label>
                 </div>
-                <button type="submit" class="admin-btn-primary">
+                <button type="submit" class="admin-btn-primary w-full">
                     Sign in
                 </button>
             </form>
         </div>
         <p class="text-center text-[var(--meta-text-muted)] text-xs mt-5">Use admin credentials from your .env or seed.</p>
     </div>
-    <style>@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }</style>
     <script>lucide.createIcons();</script>
 </body>
 </html>
