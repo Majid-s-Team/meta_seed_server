@@ -3,16 +3,22 @@
 @section('title', 'CMS')
 
 @section('content')
-<div class="mb-6 animate-fade-in">
-    <h1 class="admin-page-title">CMS</h1>
-    <p class="admin-page-desc">Privacy, Terms, About, FAQ</p>
-</div>
+<div class="animate-fade-in">
+    {{-- Page header (Section 13/20 + 23) --}}
+    <div class="flex justify-between items-start mb-8">
+        <div>
+            <p class="section-eyebrow">CMS</p>
+            <h1 class="admin-page-title mt-1">CMS</h1>
+            <p class="admin-page-desc">Privacy, Terms, About, FAQ</p>
+        </div>
+        <div class="flex items-center gap-3"></div>
+    </div>
 
-@if(session('success'))
-    <div class="mb-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">{{ session('success') }}</div>
-@endif
+    @if(session('success'))
+        <div class="alert alert-success mb-4">{{ session('success') }}</div>
+    @endif
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
     @foreach($types as $type)
         @php $page = $pages->get($type); @endphp
         <a href="{{ route('admin.cms.edit', $type) }}" class="admin-card block p-6 transition-all duration-200 hover:border-[var(--meta-accent-start)]/30 group">
@@ -28,6 +34,7 @@
             </div>
         </a>
     @endforeach
+    </div>
 </div>
 <script>if (typeof lucide !== 'undefined') lucide.createIcons();</script>
 @endsection

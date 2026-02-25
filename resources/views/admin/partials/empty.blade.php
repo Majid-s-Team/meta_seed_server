@@ -1,4 +1,4 @@
-<div class="admin-empty">
+<div class="admin-empty animate-fade-in">
     @if(isset($icon))
         <i data-lucide="{{ $icon }}" class="w-12 h-12"></i>
     @else

@@ -3,23 +3,28 @@
 @section('title', 'Broadcast Setup — ' . $livestream->title)
 
 @section('content')
-<div class="mb-6 animate-fade-in">
-    <a href="{{ route('admin.livestreams.index') }}" class="text-[var(--meta-text-secondary)] hover:text-white text-sm transition">← Livestreams</a>
-    <h1 class="admin-page-title mt-1">Broadcast Setup</h1>
-    <p class="text-[var(--meta-text-secondary)] text-sm mt-1">{{ $livestream->title }}</p>
-</div>
-
-@if(session('success'))
-    <div class="mb-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">{{ session('success') }}</div>
-@endif
-@if(session('error'))
-    <div class="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{{ session('error') }}</div>
-@endif
-@if(isset($streamKeyError) && $streamKeyError)
-    <div class="mb-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm">
-        <strong>Stream key not generated.</strong> {{ $streamKeyError }} Set <code class="bg-black/30 px-1 rounded">AGORA_RTLS_CUSTOMER_ID</code> and <code class="bg-black/30 px-1 rounded">AGORA_RTLS_CUSTOMER_SECRET</code> in .env (from Agora Console → Developer Toolkit → RESTful API) and refresh this page to generate the key.
+<div class="animate-fade-in">
+    {{-- Page header (Section 13/20 + 23) --}}
+    <div class="flex justify-between items-start mb-8">
+        <div>
+            <a href="{{ route('admin.livestreams.index') }}" class="section-eyebrow text-[var(--meta-text-secondary)] hover:text-white transition block">← Livestreams</a>
+            <h1 class="admin-page-title mt-1">Broadcast Setup</h1>
+            <p class="admin-page-desc">{{ $livestream->title }}</p>
+        </div>
+        <div class="flex items-center gap-3"></div>
     </div>
-@endif
+
+    @if(session('success'))
+        <div class="alert alert-success mb-4">{{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-error mb-4">{{ session('error') }}</div>
+    @endif
+    @if(isset($streamKeyError) && $streamKeyError)
+        <div class="alert alert-warning mb-4">
+            <strong>Stream key not generated.</strong> {{ $streamKeyError }} Set <code class="bg-black/30 px-1 rounded">AGORA_RTLS_CUSTOMER_ID</code> and <code class="bg-black/30 px-1 rounded">AGORA_RTLS_CUSTOMER_SECRET</code> in .env (from Agora Console → Developer Toolkit → RESTful API) and refresh this page to generate the key.
+        </div>
+    @endif
 
 @php
     $rtmpUrl = $livestream->rtmp_url ?: \App\Models\Livestream::defaultRtmpUrlForChannel($livestream->agora_channel);
@@ -28,14 +33,14 @@
     $isWaiting = in_array($healthStatus, ['waiting_for_broadcaster', \App\Models\Livestream::STREAM_HEALTH_STATUS_WAITING], true);
 @endphp
 
-@if($livestream->status === 'live' && $isWaiting)
-    <div class="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-sm flex items-start gap-3">
-        <i data-lucide="clock" class="w-5 h-5 shrink-0 mt-0.5"></i>
-        <div>
-            <strong>Waiting for broadcaster</strong> — Stream is set to Live. Start your encoder (OBS) with the RTMP URL and Stream Key below. When the feed is detected, status will change to "Live & receiving feed" automatically.
+    @if($livestream->status === 'live' && $isWaiting)
+        <div class="alert alert-warning mb-6 flex items-start gap-3">
+            <i data-lucide="clock" class="w-5 h-5 shrink-0 mt-0.5"></i>
+            <div>
+                <strong>Waiting for broadcaster</strong> — Stream is set to Live. Start your encoder (OBS) with the RTMP URL and Stream Key below. When the feed is detected, status will change to "Live & receiving feed" automatically.
+            </div>
         </div>
-    </div>
-@endif
+    @endif
 
 <div class="grid gap-6 max-w-4xl">
     {{-- RTMP connection details with copy buttons --}}
@@ -109,13 +114,13 @@
             <div class="flex items-center gap-2">
                 <span class="text-[var(--meta-text-muted)] text-sm">Stream health</span>
                 @if($isWaiting)
-                    <span class="px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-500/20 text-amber-400">Waiting for broadcaster</span>
+                    <span class="badge badge-pending">Waiting for broadcaster</span>
                 @elseif($healthStatus === \App\Models\Livestream::STREAM_HEALTH_STATUS_LIVE || $livestream->stream_health === 'ok')
-                    <span class="px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-400">Live & receiving feed</span>
+                    <span class="badge badge-active">Live & receiving feed</span>
                 @elseif($healthStatus === \App\Models\Livestream::STREAM_HEALTH_STATUS_OFFLINE || $livestream->stream_health === 'offline')
-                    <span class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-500/20 text-slate-400">Stream offline</span>
+                    <span class="badge badge-inactive">Stream offline</span>
                 @else
-                    <span class="px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--meta-text-muted)]/20 text-[var(--meta-text-muted)]">—</span>
+                    <span class="badge badge-inactive">—</span>
                 @endif
             </div>
             <div class="flex items-center gap-2">
@@ -154,6 +159,7 @@
         @endif
         <a href="{{ route('admin.livestreams.edit', $livestream) }}" class="admin-btn-ghost">Edit stream</a>
     </div>
+</div>
 </div>
 <script>
 if (typeof lucide !== 'undefined') lucide.createIcons();

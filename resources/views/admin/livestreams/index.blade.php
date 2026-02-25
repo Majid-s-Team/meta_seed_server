@@ -3,43 +3,60 @@
 @section('title', 'Livestreams')
 
 @section('content')
-<div class="flex justify-between items-center mb-6 animate-fade-in">
-    <div>
-        <h1 class="admin-page-title">Livestreams</h1>
-        <p class="admin-page-desc">Schedule and control live streams</p>
+<div class="animate-fade-in">
+    {{-- Page header (Section 13/20 + 23) --}}
+    <div class="flex justify-between items-start mb-8">
+        <div>
+            <p class="section-eyebrow">Livestreams</p>
+            <h1 class="admin-page-title mt-1">Livestreams</h1>
+            <p class="admin-page-desc">Schedule and control live streams</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('admin.livestreams.create') }}" class="admin-btn-primary">
+                <i data-lucide="radio"></i>
+                Schedule Stream
+            </a>
+        </div>
     </div>
-    <a href="{{ route('admin.livestreams.create') }}" class="admin-btn-primary">
-        <i data-lucide="radio"></i>
-        Schedule Stream
-    </a>
-</div>
 
-@if(session('success'))
-    <div class="mb-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">{{ session('success') }}</div>
-@endif
-@if(session('warning'))
-    <div class="mb-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm">{{ session('warning') }}</div>
-@endif
-@if(session('error'))
-    <div class="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{{ session('error') }}</div>
-@endif
+    @if(session('success'))
+        <div class="alert alert-success mb-4">{{ session('success') }}</div>
+    @endif
+    @if(session('warning'))
+        <div class="alert alert-warning mb-4">{{ session('warning') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-error mb-4">{{ session('error') }}</div>
+    @endif
 
-<form method="GET" class="flex gap-2 mb-5">
-    <select name="status" class="admin-input w-auto min-w-[140px]">
-        <option value="">All statuses</option>
-        <option value="scheduled" {{ request('status') === 'scheduled' ? 'selected' : '' }}>Scheduled</option>
-        <option value="live" {{ request('status') === 'live' ? 'selected' : '' }}>Live</option>
-        <option value="ended" {{ request('status') === 'ended' ? 'selected' : '' }}>Ended</option>
-    </select>
-    <button type="submit" class="admin-btn-ghost">Filter</button>
-</form>
+    {{-- Filters (Section 11: form-group, form-label, admin-input) --}}
+    <form method="GET" class="flex flex-wrap items-end gap-4 mb-5">
+        <div class="form-group">
+            <label for="status" class="form-label">Status</label>
+            <select name="status" id="status" class="admin-input w-auto min-w-[140px]">
+                <option value="">All statuses</option>
+                <option value="scheduled" {{ request('status') === 'scheduled' ? 'selected' : '' }}>Scheduled</option>
+                <option value="live" {{ request('status') === 'live' ? 'selected' : '' }}>Live</option>
+                <option value="ended" {{ request('status') === 'ended' ? 'selected' : '' }}>Ended</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <button type="submit" class="admin-btn-ghost">Filter</button>
+        </div>
+    </form>
 
-<form id="bulkDeleteForm" method="POST" action="{{ route('admin.livestreams.bulk-delete') }}" class="hidden">
-    @csrf
-    <input type="hidden" name="ids" id="bulkDeleteIds">
-</form>
-<div class="admin-card overflow-hidden">
-    <table class="admin-table w-full">
+    <form id="bulkDeleteForm" method="POST" action="{{ route('admin.livestreams.bulk-delete') }}" class="hidden">
+        @csrf
+        <input type="hidden" name="ids" id="bulkDeleteIds">
+    </form>
+
+    {{-- Table card (Section 9 + 12 + 23: card-header, admin-table, td-secondary, badge) --}}
+    <div class="admin-card overflow-hidden section-gap">
+        <div class="card-header">
+            <h3 class="card-header-title">Livestream list</h3>
+            <div class="card-header-actions"></div>
+        </div>
+        <table class="admin-table w-full">
         <thead>
             <tr>
                 <th><input type="checkbox" id="selectAll" class="rounded border-white/20 bg-white/5 text-[#6A5CFF]" title="Select all"></th>
@@ -60,33 +77,33 @@
                 <tr>
                     <td><input type="checkbox" name="ids[]" value="{{ $ls->id }}" class="row-select rounded border-white/20 bg-white/5 text-[#6A5CFF]" {{ $ls->status === 'live' ? 'disabled' : '' }}></td>
                     <td class="font-medium text-white">{{ $ls->title }}</td>
-                    <td class="text-[var(--meta-text-secondary)]">{{ $ls->scheduled_at?->format('M d, H:i') }}</td>
-                    <td class="text-[var(--meta-text-muted)] font-mono text-xs">{{ $ls->agora_channel }}</td>
-                    <td>{{ $ls->price }}</td>
-                    <td>{{ $ls->max_participants }}</td>
-                    <td>{{ $ls->current_viewer_count ?? 0 }}</td>
+                    <td class="td-secondary">{{ $ls->scheduled_at?->format('M d, H:i') }}</td>
+                    <td class="td-secondary font-mono text-xs">{{ $ls->agora_channel }}</td>
+                    <td class="td-secondary">{{ $ls->price }}</td>
+                    <td class="td-secondary">{{ $ls->max_participants }}</td>
+                    <td class="td-secondary">{{ $ls->current_viewer_count ?? 0 }}</td>
                     <td>
                         @php $health = $ls->stream_health_status ?? $ls->stream_health; @endphp
                         @if($health === 'waiting_for_broadcaster')
-                            <span class="text-amber-400 text-xs">Waiting</span>
+                            <span class="badge badge-pending">Waiting</span>
                         @elseif($health === 'live_receiving_feed' || $ls->stream_health === 'ok')
-                            <span class="text-emerald-400 text-xs">Live</span>
+                            <span class="badge badge-active">Live</span>
                         @elseif($health === 'stream_offline' || $ls->stream_health === 'offline')
-                            <span class="text-slate-400 text-xs">Offline</span>
+                            <span class="badge badge-inactive">Offline</span>
                         @elseif($ls->stream_health === 'degraded')
-                            <span class="text-amber-400 text-xs">Degraded</span>
+                            <span class="badge badge-pending">Degraded</span>
                         @else
-                            <span class="text-[var(--meta-text-muted)] text-xs">—</span>
+                            <span class="badge badge-inactive">—</span>
                         @endif
                     </td>
-                    <td class="text-emerald-400 text-xs">{{ $ls->revenue_earned ? number_format((float)$ls->revenue_earned, 2) . ' coins' : '—' }}</td>
+                    <td class="td-secondary text-emerald-400 text-xs">{{ $ls->revenue_earned ? number_format((float)$ls->revenue_earned, 2) . ' coins' : '—' }}</td>
                     <td>
                         @if($ls->status === 'live')
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--meta-live)]/20 text-[var(--meta-live)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--meta-live)] animate-pulse"></span> Live</span>
+                            <span class="badge badge-active">Live</span>
                         @elseif($ls->status === 'scheduled')
-                            <span class="px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-500/20 text-blue-400">Scheduled</span>
+                            <span class="badge badge-info">Scheduled</span>
                         @else
-                            <span class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-500/20 text-slate-400">Ended</span>
+                            <span class="badge badge-inactive">Ended</span>
                         @endif
                     </td>
                     <td>
@@ -127,12 +144,13 @@
             @endforelse
         </tbody>
     </table>
-    @if($livestreams->hasPages())
-        <div class="px-5 py-4 border-t border-[var(--meta-border)]">{{ $livestreams->links('admin.partials.pagination') }}</div>
-    @endif
-</div>
-<div class="mt-3 flex gap-2" id="bulkActions" style="display: none;">
-    <button type="button" onclick="submitBulkDelete()" class="admin-btn-ghost text-red-400 hover:bg-red-500/10">Delete selected (scheduled/ended only)</button>
+        @if($livestreams->hasPages())
+            <div class="px-5 py-4 border-t border-[var(--meta-border)]">{{ $livestreams->links('admin.partials.pagination') }}</div>
+        @endif
+    </div>
+    <div class="mt-3 flex gap-2" id="bulkActions" style="display: none;">
+        <button type="button" onclick="submitBulkDelete()" class="admin-btn-ghost text-red-400 hover:bg-red-500/10">Delete selected (scheduled/ended only)</button>
+    </div>
 </div>
 <script>
 if (typeof lucide !== 'undefined') lucide.createIcons();

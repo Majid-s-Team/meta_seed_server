@@ -11,8 +11,8 @@
     </style>
 </head>
 <body>
-    <div class="back"><a href="{{ route('admin.cms.index') }}">← Back to CMS</a></div>
-    <h1>{{ $page->title ?? 'Untitled' }}</h1>
+    <div class="back animate-fade-in"><a href="{{ route('admin.cms.index') }}" class="section-eyebrow">← Back to CMS</a></div>
+    <h1 class="admin-page-title">{{ $page->title ?? 'Untitled' }}</h1>
     <div class="content">
         {!! $page->content ?? '' !!}
     </div>

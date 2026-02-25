@@ -3,12 +3,18 @@
 @section('title', 'Bookings')
 
 @section('content')
-<div class="mb-6 animate-fade-in">
-    <h1 class="admin-page-title">Bookings</h1>
-    <p class="admin-page-desc">Event and livestream bookings</p>
-</div>
+<div class="animate-fade-in">
+    {{-- Page header (Section 13/20 + 23) --}}
+    <div class="flex justify-between items-start mb-8">
+        <div>
+            <p class="section-eyebrow">Bookings</p>
+            <h1 class="admin-page-title mt-1">Bookings</h1>
+            <p class="admin-page-desc">Event and livestream bookings</p>
+        </div>
+        <div class="flex items-center gap-3"></div>
+    </div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl">
     <a href="{{ route('admin.bookings.event') }}" class="admin-card block p-6 transition-all duration-200 hover:border-[var(--meta-accent-start)]/30 group">
         <div class="flex items-start gap-4">
             <div class="admin-stat-icon bg-[var(--meta-accent-start)]/20 text-[var(--meta-accent-end)] group-hover:bg-[var(--meta-accent-start)]/30 transition">
@@ -31,6 +37,7 @@
             </div>
         </div>
     </a>
+    </div>
 </div>
 <script>if (typeof lucide !== 'undefined') lucide.createIcons();</script>
 @endsection

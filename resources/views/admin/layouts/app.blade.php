@@ -16,12 +16,22 @@
 </head>
 <body class="min-h-screen surface-main">
     <div class="flex">
-        <aside class="w-64 min-h-screen admin-sidebar flex flex-col fixed z-30">
-            <div class="p-5 border-b border-[rgba(255,255,255,0.06)]">
-                <a href="{{ route('admin.dashboard') }}" class="font-bold text-lg tracking-tight text-white">MetaSeat</a>
-                <span class="text-[var(--meta-text-muted)] text-xs block mt-0.5">Admin Panel</span>
+        <aside class="admin-sidebar">
+            {{-- Brand Header --}}
+            <div class="admin-sidebar-header">
+                <a href="{{ route('admin.dashboard') }}" class="admin-sidebar-logo">
+                    <div class="admin-sidebar-logo-mark">
+                        <i data-lucide="zap" style="width:18px;height:18px;color:#fff;"></i>
+                    </div>
+                    <span class="admin-sidebar-logo-text">MetaSeat</span>
+                    <span class="admin-sidebar-logo-badge">Admin</span>
+                </a>
             </div>
-            <nav class="flex-1 p-3 space-y-0.5 overflow-y-auto">
+
+            {{-- Navigation --}}
+            <nav class="flex-1 p-3 overflow-y-auto" style="scrollbar-width: thin;">
+                <div class="admin-nav-label">Main</div>
+
                 <a href="{{ route('admin.dashboard') }}" class="admin-sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                     <i data-lucide="layout-dashboard"></i>
                     <span>Dashboard</span>
@@ -59,17 +69,30 @@
                     <span>CMS</span>
                 </a>
             </nav>
-            <div class="p-3 border-t border-[rgba(255,255,255,0.06)]">
+
+            {{-- Footer: user info + logout --}}
+            <div class="admin-sidebar-footer">
+                @auth
+                <div class="flex items-center gap-2.5 py-2.5 px-3 rounded-[10px] bg-white/[0.03] border border-white/[0.05] mb-1.5">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style="background:var(--grad-brand);">{{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}</div>
+                    <div class="overflow-hidden flex-1 min-w-0">
+                        <div class="text-[0.8rem] font-semibold text-white truncate">{{ auth()->user()->name ?? 'Admin' }}</div>
+                        <div class="text-[0.7rem] truncate" style="color:var(--meta-text-muted);">{{ auth()->user()->email ?? '' }}</div>
+                    </div>
+                </div>
+                @endauth
+
                 <form method="POST" action="{{ route('admin.logout') }}">
                     @csrf
-                    <button type="submit" class="admin-sidebar-link w-full text-left hover:!text-red-400 hover:!bg-red-500/10 !border-0">
+                    <button type="submit" class="admin-sidebar-link logout-btn w-full text-left">
                         <i data-lucide="log-out"></i>
                         <span>Logout</span>
                     </button>
                 </form>
             </div>
         </aside>
-        <main class="flex-1 ml-64 p-6 min-h-screen">
+
+        <main class="flex-1 min-h-screen p-6" style="margin-left: 256px; position: relative; z-index: 1;">
             @yield('content')
         </main>
     </div>
