@@ -4,11 +4,10 @@
 
 @section('content')
 <div class="animate-fade-in">
-    {{-- Page header (Section 13/20 + 23) --}}
-    <div class="flex justify-between items-start mb-8">
+    <div class="page-header">
         <div>
-            <a href="{{ route('admin.events.index') }}" class="section-eyebrow text-[var(--meta-text-secondary)] hover:text-white transition block">← Events</a>
-            <h1 class="admin-page-title mt-1">Edit Event</h1>
+            <a href="{{ route('admin.events.index') }}" class="page-eyebrow text-[var(--meta-text-secondary)] hover:text-white transition block">← Events</a>
+            <h1 class="page-title">Edit Event</h1>
             <p class="admin-page-desc">Update event details, seats, and visibility.</p>
         </div>
         <div class="flex items-center gap-3"></div>

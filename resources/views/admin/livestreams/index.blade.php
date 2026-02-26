@@ -1,14 +1,14 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Livestreams')
+@section('breadcrumb_page', 'Livestreams')
 
 @section('content')
 <div class="animate-fade-in">
-    {{-- Page header (Section 13/20 + 23) --}}
-    <div class="flex justify-between items-start mb-8">
+    <div class="page-header">
         <div>
-            <p class="section-eyebrow">Livestreams</p>
-            <h1 class="admin-page-title mt-1">Livestreams</h1>
+            <p class="page-eyebrow">Livestreams</p>
+            <h1 class="page-title">Livestreams</h1>
             <p class="admin-page-desc">Schedule and control live streams</p>
         </div>
         <div class="flex items-center gap-3">
@@ -29,8 +29,7 @@
         <div class="alert alert-error mb-4">{{ session('error') }}</div>
     @endif
 
-    {{-- Filters (Section 11: form-group, form-label, admin-input) --}}
-    <form method="GET" class="flex flex-wrap items-end gap-4 mb-5">
+    <form method="GET" class="filter-bar">
         <div class="form-group">
             <label for="status" class="form-label">Status</label>
             <select name="status" id="status" class="admin-input w-auto min-w-[140px]">
@@ -108,7 +107,7 @@
                     </td>
                     <td>
                         <div class="flex flex-wrap gap-2 items-center">
-                            <a href="{{ route('admin.livestreams.broadcast', $ls) }}" class="text-[var(--meta-accent-end)] hover:underline text-sm font-medium">Broadcast</a>
+                            <a href="{{ route('admin.livestreams.broadcast', $ls) }}" class="action-edit">Broadcast</a>
                             @if(($ls->rtmp_url || $ls->rtmp_stream_key) && $ls->status === 'live')
                                 <span class="text-[var(--meta-text-muted)] text-xs" title="RTMP ready">OBS</span>
                             @endif
@@ -117,7 +116,7 @@
                                     @csrf
                                     <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--meta-live)]/20 text-[var(--meta-live)] hover:bg-[var(--meta-live)]/30 transition">Go Live</button>
                                 </form>
-                                <a href="{{ route('admin.livestreams.edit', $ls) }}" class="text-[var(--meta-accent-end)] hover:underline text-sm font-medium">Edit</a>
+                                <a href="{{ route('admin.livestreams.edit', $ls) }}" class="action-edit">Edit</a>
                             @endif
                             @if($ls->status === 'live')
                                 <form action="{{ route('admin.livestreams.end-stream', $ls) }}" method="POST" class="inline">
@@ -126,10 +125,11 @@
                                 </form>
                             @endif
                             @if(in_array($ls->status, ['scheduled', 'ended']))
+                                <span class="action-sep">|</span>
                                 <form action="{{ route('admin.livestreams.destroy', $ls) }}" method="POST" class="inline" onsubmit="return confirm('Delete this livestream?');">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-400 hover:underline text-sm">Delete</button>
+                                    <button type="submit" class="action-delete bg-transparent border-0 cursor-pointer p-0">Delete</button>
                                 </form>
                             @endif
                         </div>
@@ -148,7 +148,7 @@
             <div class="px-5 py-4 border-t border-[var(--meta-border)]">{{ $livestreams->links('admin.partials.pagination') }}</div>
         @endif
     </div>
-    <div class="mt-3 flex gap-2" id="bulkActions" style="display: none;">
+    <div class="filter-bar mt-3 flex gap-2" id="bulkActions" style="display: none;">
         <button type="button" onclick="submitBulkDelete()" class="admin-btn-ghost text-red-400 hover:bg-red-500/10">Delete selected (scheduled/ended only)</button>
     </div>
 </div>

@@ -1,14 +1,14 @@
 @extends('admin.layouts.app')
 
 @section('title', 'CMS')
+@section('breadcrumb_page', 'CMS')
 
 @section('content')
 <div class="animate-fade-in">
-    {{-- Page header (Section 13/20 + 23) --}}
-    <div class="flex justify-between items-start mb-8">
+    <div class="page-header">
         <div>
-            <p class="section-eyebrow">CMS</p>
-            <h1 class="admin-page-title mt-1">CMS</h1>
+            <p class="page-eyebrow">CMS</p>
+            <h1 class="page-title">CMS</h1>
             <p class="admin-page-desc">Privacy, Terms, About, FAQ</p>
         </div>
         <div class="flex items-center gap-3"></div>

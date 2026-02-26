@@ -1,14 +1,14 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Users')
+@section('breadcrumb_page', 'Users')
 
 @section('content')
 <div class="animate-fade-in">
-    {{-- Page header (Section 13/20 + 23) --}}
-    <div class="flex justify-between items-start mb-8">
+    <div class="page-header">
         <div>
-            <p class="section-eyebrow">Users</p>
-            <h1 class="admin-page-title mt-1">Users</h1>
+            <p class="page-eyebrow">Users</p>
+            <h1 class="page-title">Users</h1>
             <p class="admin-page-desc">Manage users and access</p>
         </div>
         <div class="flex items-center gap-3"></div>
@@ -21,8 +21,7 @@
         <div class="alert alert-error mb-4">{{ session('error') }}</div>
     @endif
 
-    {{-- Filters (Section 11: form-group, form-label, admin-input) --}}
-    <form method="GET" class="flex flex-wrap items-end gap-4 mb-5">
+    <form method="GET" class="filter-bar">
         <div class="form-group">
             <label for="search" class="form-label">Search</label>
             <input type="text" name="search" id="search" value="{{ request('search') }}" placeholder="Name or email..." class="admin-input w-64">
@@ -82,7 +81,7 @@
                             @endif
                         </td>
                         <td>
-                            <a href="{{ route('admin.users.show', $u) }}" class="text-[var(--meta-accent-end)] hover:underline font-medium text-sm">View</a>
+                            <a href="{{ route('admin.users.show', $u) }}" class="action-edit">View</a>
                         </td>
                     </tr>
                 @empty

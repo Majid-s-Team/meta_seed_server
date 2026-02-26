@@ -1,14 +1,14 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Event Categories')
+@section('breadcrumb_page', 'Categories')
 
 @section('content')
 <div class="animate-fade-in">
-    {{-- Page header (Section 13/20 + 23) --}}
-    <div class="flex justify-between items-start mb-8">
+    <div class="page-header">
         <div>
-            <p class="section-eyebrow">Categories</p>
-            <h1 class="admin-page-title mt-1">Event Categories</h1>
+            <p class="page-eyebrow">Categories</p>
+            <h1 class="page-title">Event Categories</h1>
             <p class="admin-page-desc">Manage categories for events</p>
         </div>
         <div class="flex items-center gap-3">
@@ -49,11 +49,12 @@
                         <td class="td-secondary">{{ $cat->events_count }}</td>
                         <td>
                             <div class="flex items-center gap-2">
-                                <a href="{{ route('admin.categories.edit', $cat) }}" class="text-[var(--meta-accent-end)] hover:underline text-sm font-medium">Edit</a>
+                                <a href="{{ route('admin.categories.edit', $cat) }}" class="action-edit">Edit</a>
+                                <span class="action-sep">|</span>
                                 <form action="{{ route('admin.categories.destroy', $cat) }}" method="POST" class="inline" onsubmit="return confirm('Delete this category? Events must be reassigned first.');">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-400 hover:underline text-sm">Delete</button>
+                                    <button type="submit" class="action-delete bg-transparent border-0 cursor-pointer p-0">Delete</button>
                                 </form>
                             </div>
                         </td>
@@ -72,7 +73,7 @@
         @csrf
         <input type="hidden" name="ids" id="bulkDeleteIds">
     </form>
-    <div class="mt-3 flex gap-2" id="bulkActions" style="display: none;">
+    <div class="filter-bar mt-3 flex gap-2" id="bulkActions" style="display: none;">
         <button type="button" onclick="submitBulkDelete()" class="admin-btn-ghost text-red-400 hover:bg-red-500/10">Delete selected</button>
     </div>
 </div>

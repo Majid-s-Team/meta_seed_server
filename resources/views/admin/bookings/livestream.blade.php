@@ -4,18 +4,16 @@
 
 @section('content')
 <div class="animate-fade-in">
-    {{-- Page header (Section 13/20 + 23) --}}
-    <div class="flex justify-between items-start mb-8">
+    <div class="page-header">
         <div>
-            <a href="{{ route('admin.bookings.index') }}" class="section-eyebrow text-[var(--meta-text-secondary)] hover:text-white transition block">← Bookings</a>
-            <h1 class="admin-page-title mt-1">Livestream Bookings</h1>
+            <a href="{{ route('admin.bookings.index') }}" class="page-eyebrow text-[var(--meta-text-secondary)] hover:text-white transition block">← Bookings</a>
+            <h1 class="page-title">Livestream Bookings</h1>
             <p class="admin-page-desc">View and filter livestream viewer bookings.</p>
         </div>
         <div class="flex items-center gap-3"></div>
     </div>
 
-    {{-- Filters (Section 11: form-group, form-label, admin-input) --}}
-    <form method="GET" class="flex flex-wrap items-end gap-4 mb-5">
+    <form method="GET" class="filter-bar">
         <div class="form-group">
             <label for="livestream_id" class="form-label">Livestream</label>
             <select name="livestream_id" id="livestream_id" class="admin-input w-auto min-w-[220px]">

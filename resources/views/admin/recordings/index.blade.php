@@ -1,14 +1,14 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Recordings')
+@section('breadcrumb_page', 'Recordings')
 
 @section('content')
 <div class="animate-fade-in">
-    {{-- Page header (Section 13/20 + 23) --}}
-    <div class="flex justify-between items-start mb-8">
+    <div class="page-header">
         <div>
-            <p class="section-eyebrow">Recordings</p>
-            <h1 class="admin-page-title mt-1">Past Event Recordings</h1>
+            <p class="page-eyebrow">Recordings</p>
+            <h1 class="page-title">Past Event Recordings</h1>
             <p class="admin-page-desc">Upload and manage past event videos for app users</p>
         </div>
         <div class="flex items-center gap-3">
@@ -59,11 +59,12 @@
                         </td>
                         <td>
                             <div class="flex items-center gap-2">
-                                <a href="{{ route('admin.recordings.edit', $r) }}" class="text-[var(--meta-accent-end)] hover:underline text-sm font-medium">Edit</a>
+                                <a href="{{ route('admin.recordings.edit', $r) }}" class="action-edit">Edit</a>
+                                <span class="action-sep">|</span>
                                 <form action="{{ route('admin.recordings.destroy', $r) }}" method="POST" class="inline" onsubmit="return confirm('Delete this recording?');">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-400 hover:underline text-sm">Delete</button>
+                                    <button type="submit" class="action-delete bg-transparent border-0 cursor-pointer p-0">Delete</button>
                                 </form>
                             </div>
                         </td>

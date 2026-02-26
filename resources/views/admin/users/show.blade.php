@@ -4,11 +4,10 @@
 
 @section('content')
 <div class="animate-fade-in">
-    {{-- Page header (Section 13/20 + 23) --}}
-    <div class="flex justify-between items-start mb-8">
+    <div class="page-header">
         <div>
-            <a href="{{ route('admin.users.index') }}" class="section-eyebrow text-[var(--meta-text-secondary)] hover:text-white transition block">← Users</a>
-            <h1 class="admin-page-title mt-1">{{ $user->name }}</h1>
+            <a href="{{ route('admin.users.index') }}" class="page-eyebrow text-[var(--meta-text-secondary)] hover:text-white transition block">← Users</a>
+            <h1 class="page-title">{{ $user->name }}</h1>
             <p class="admin-page-desc">{{ $user->email }}</p>
             @if($user->is_active)
                 <span class="badge badge-active mt-2 inline-block">Active</span>

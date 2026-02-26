@@ -1,14 +1,14 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Bookings')
+@section('breadcrumb_page', 'Bookings')
 
 @section('content')
 <div class="animate-fade-in">
-    {{-- Page header (Section 13/20 + 23) --}}
-    <div class="flex justify-between items-start mb-8">
+    <div class="page-header">
         <div>
-            <p class="section-eyebrow">Bookings</p>
-            <h1 class="admin-page-title mt-1">Bookings</h1>
+            <p class="page-eyebrow">Bookings</p>
+            <h1 class="page-title">Bookings</h1>
             <p class="admin-page-desc">Event and livestream bookings</p>
         </div>
         <div class="flex items-center gap-3"></div>

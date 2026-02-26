@@ -1,6 +1,7 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Events')
+@section('breadcrumb_page', 'Events')
 
 @section('content')
 <div class="animate-fade-in">
@@ -95,11 +96,12 @@
                         </td>
                         <td>
                             <div class="flex items-center gap-2">
-                                <a href="{{ route('admin.events.edit', $event) }}" class="text-[var(--meta-accent-end)] hover:underline text-sm font-medium">Edit</a>
-                                <form action="{{ route('admin.events.destroy', $event) }}" method="POST" class="inline" onsubmit="return confirm('Delete this event?');">
+<a href="{{ route('admin.events.edit', $event) }}" class="action-edit">Edit</a>
+                                    <span class="action-sep">|</span>
+                                    <form action="{{ route('admin.events.destroy', $event) }}" method="POST" class="inline" onsubmit="return confirm('Delete this event?');">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-400 hover:underline text-sm">Delete</button>
+                                    <button type="submit" class="action-delete bg-transparent border-0 cursor-pointer p-0">Delete</button>
                                 </form>
                             </div>
                         </td>

@@ -1,21 +1,20 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Transactions')
+@section('breadcrumb_page', 'Transactions')
 
 @section('content')
 <div class="animate-fade-in">
-    {{-- Page header (Section 13/20 + 23) --}}
-    <div class="flex justify-between items-start mb-8">
+    <div class="page-header">
         <div>
-            <p class="section-eyebrow">Transactions</p>
-            <h1 class="admin-page-title mt-1">Transactions</h1>
+            <p class="page-eyebrow">Transactions</p>
+            <h1 class="page-title">Transactions</h1>
             <p class="admin-page-desc">View-only transaction history</p>
         </div>
         <div class="flex items-center gap-3"></div>
     </div>
 
-    {{-- Filters (Section 11: form-group, form-label, admin-input) --}}
-    <form method="GET" class="flex flex-wrap items-end gap-4 mb-5">
+    <form method="GET" class="filter-bar">
         <div class="form-group">
             <label for="type" class="form-label">Type</label>
             <select name="type" id="type" class="admin-input w-auto min-w-[120px]">
